@@ -1,4 +1,4 @@
-# Shop System (Django)
+# Give-life-erp (Shop System)
 
 This repository contains a minimal Django-based shop management web app with:
 - Custom `User` model with roles (Admin, Accountant, Supervisor, Employee)
