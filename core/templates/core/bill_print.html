@@ -1,0 +1,154 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Invoice {{ bill.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm border-0" id="invoice-card">
+        <div class="card-body p-5">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-6">
+                    <h2 class="fw-bold text-primary">GIVE LIFE</h2>
+                    <p class="text-muted mb-0">123 Main Street, City</p>
+                    <p class="text-muted mb-0">Phone: +91 9876543210</p>
+                </div>
+                <div class="col-6 text-end">
+                    <h4 class="fw-bold">INVOICE</h4>
+                    <p class="mb-0"><strong>Invoice No:</strong> {{ bill.invoice_number }}</p>
+                    <p class="mb-0"><strong>Date:</strong> {{ bill.created_at|date:"d M Y" }}</p>
+                    <p class="mb-0"><strong>Type:</strong> {{ bill.get_bill_type_display }}</p>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- Customer & Bill Details -->
+            <div class="row mb-4">
+                <div class="col-6">
+                    <h6 class="fw-bold text-uppercase text-muted small">Bill To</h6>
+                    {% if bill.customer %}
+                    <h5 class="fw-bold mb-1">{{ bill.customer.shop_name }}</h5>
+                    <p class="text-muted mb-0">{{ bill.customer.address|linebreaksbr }}</p>
+                    <p class="text-muted mb-0">{{ bill.customer.contact_number }}</p>
+                    {% else %}
+                    <h5 class="fw-bold mb-1">{{ bill.customer_name }}</h5>
+                    <p class="text-muted mb-0">{{ bill.customer_address|linebreaksbr }}</p>
+                    {% endif %}
+
+                    {% if bill.outlet_name %}
+                    <p class="mt-2"><strong>Outlet:</strong> {{ bill.get_outlet_name_display }}</p>
+                    {% endif %}
+                </div>
+                <div class="col-6 text-end">
+                    <h6 class="fw-bold text-uppercase text-muted small">Payment Details</h6>
+                    <p class="mb-0"><strong>Status:</strong>
+                        <span
+                            class="badge {% if bill.payment_status == 'PAID' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                            {{ bill.get_payment_status_display }}
+                        </span>
+                    </p>
+                    <p class="mb-0"><strong>Mode:</strong> {{ bill.get_payment_type_display }}</p>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Item Description</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in bill.items.all %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                {% if item.item %}
+                                {{ item.item.name }}
+                                {% else %}
+                                {{ item.custom_item_name }}
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-end">₹{{ item.price }}</td>
+                            <td class="text-end">₹{{ item.total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold">Total Amount</td>
+                            <td class="text-end fw-bold">₹{{ bill.total_amount }}</td>
+                        </tr>
+                        {% if bill.advance_payment > 0 %}
+                        <tr>
+                            <td colspan="4" class="text-end text-muted">Advance Paid</td>
+                            <td class="text-end text-muted">- ₹{{ bill.advance_payment }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold">Balance Due</td>
+                            <td class="text-end fw-bold text-danger">₹{{
+                                bill.total_amount|add:bill.advance_payment|stringformat:"f" }}</td>
+                            {# Note: Calculation above is tricky in template, better to have a property in model #}
+                        </tr>
+                        {% endif %}
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Footer -->
+            <div class="row mt-5">
+                <div class="col-6">
+                    <p class="fw-bold mb-1">Remarks:</p>
+                    <p class="text-muted small">{{ bill.remarks|default:"--" }}</p>
+                </div>
+                <div class="col-6 text-end mt-4">
+                    <p class="fw-bold mb-5">Authorized Signature</p>
+                    <p class="text-muted small">Generated by: {{ bill.created_by.username }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Actions -->
+    <div class="text-center mt-4 mb-5 d-print-none">
+        <button onclick="window.print()" class="btn btn-primary btn-lg px-5">
+            <i class="bi bi-printer me-2"></i>Print Invoice
+        </button>
+        <a href="{% url 'bill_list' %}" class="btn btn-light border btn-lg px-4 ms-2">Back</a>
+    </div>
+</div>
+
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+
+        #invoice-card,
+        #invoice-card * {
+            visibility: visible;
+        }
+
+        #invoice-card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .d-print-none {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends 'core/base.html' %}
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">User Management</h2>
+            <p class="text-muted mb-0">Manage system users and their roles</p>
+        </div>
+        <a href="{% url 'create_user' %}" class="btn btn-primary">
+            <i class="bi bi-person-plus me-2"></i>Create New User
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">User</th>
+                            <th>Role</th>
+                            <th>Emp ID</th>
+                            <th>Contact</th>
+                            <th class="text-end pe-4">Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-light text-primary rounded-circle me-3 d-flex align-items-center justify-content-center border"
+                                        style="width: 32px; height: 32px;">
+                                        <i class="bi bi-person-fill"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">{{ u.username }}</div>
+                                        <div class="small text-muted">{{ u.email|default:"No email" }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if u.role == 'ADMIN' %}
+                                <span
+                                    class="badge bg-danger-subtle text-danger border border-danger-subtle">Admin</span>
+                                {% elif u.role == 'SUPERVISOR' %}
+                                <span
+                                    class="badge bg-warning-subtle text-warning border border-warning-subtle">Supervisor</span>
+                                {% elif u.role == 'ACCOUNTANT' %}
+                                <span class="badge bg-info-subtle text-info border border-info-subtle">Accountant</span>
+                                {% else %}
+                                <span
+                                    class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Employee</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted">{{ u.emp_id|default:"-" }}</td>
+                            <td>{{ u.contact_number|default:"-" }}</td>
+                            <td class="text-end pe-4">
+                                {% if u.is_active %}
+                                <span class="badge bg-success-subtle text-success rounded-pill px-3">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'manage_user_permissions' u.pk %}"
+                                    class="btn btn-sm btn-info">Permissions</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-people fs-1 d-block mb-2"></i>
+                                No users found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

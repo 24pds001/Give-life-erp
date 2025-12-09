@@ -1,0 +1,130 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Attendance Logs</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        {% if current_attendance %}
+        <form method="post" action="{% url 'clock_out' %}" class="me-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-danger">
+                <i class="bi bi-box-arrow-right"></i> Clock Out
+            </button>
+        </form>
+        <span class="navbar-text me-3">
+            Clocked in at {{ current_attendance.in_time }}
+        </span>
+        {% else %}
+        <form method="post" action="{% url 'clock_in' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-success">
+                <i class="bi bi-box-arrow-in-right"></i> Clock In
+            </button>
+        </form>
+        {% endif %}
+
+        {% if user.role == 'ACCOUNTANT' or user.is_supervisor_or_admin %}
+        <a href="{% url 'approve_attendance' %}" class="btn btn-sm btn-outline-primary ms-2">
+            <i class="bi bi-check-circle"></i> Approvals
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="start_date" class="form-label">Start Date</label>
+                <input type="date" class="form-control" id="start_date" name="start_date"
+                    value="{{ filter_start_date|default:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="end_date" class="form-label">End Date</label>
+                <input type="date" class="form-control" id="end_date" name="end_date"
+                    value="{{ filter_end_date|default:'' }}">
+            </div>
+            {% if users %}
+            <div class="col-md-3">
+                <label for="user_id" class="form-label">Employee</label>
+                <select class="form-select" id="user_id" name="user_id">
+                    <option value="">All Employees</option>
+                    {% for u in users %}
+                    <option value="{{ u.id }}" {% if filter_user_id==u.id|stringformat:"s" %}selected{% endif %}>{{
+                        u.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <a href="{% url 'attendance_list' %}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-sm">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Employee</th>
+                <th>In Time</th>
+                <th>Out Time</th>
+                <th>Total Hours</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.date }}</td>
+                <td>{{ log.user.username }}</td>
+                <td>{{ log.in_time }}</td>
+                <td>{{ log.out_time|default:"-" }}</td>
+                <td>{{ log.total_hours|default:"-" }}</td>
+                <td>
+                    {% if log.is_approved %}
+                    <span class="badge bg-success">Approved</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">No logs found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if logs.has_other_pages %}
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        {% if logs.has_previous %}
+        <li class="page-item"><a class="page-link"
+                href="?page=1{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_user_id %}&user_id={{ filter_user_id }}{% endif %}">&laquo;
+                First</a></li>
+        <li class="page-item"><a class="page-link"
+                href="?page={{ logs.previous_page_number }}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_user_id %}&user_id={{ filter_user_id }}{% endif %}">Previous</a>
+        </li>
+        {% endif %}
+
+        <li class="page-item disabled"><span class="page-link">Page {{ logs.number }} of {{
+                logs.paginator.num_pages }}</span></li>
+
+        {% if logs.has_next %}
+        <li class="page-item"><a class="page-link"
+                href="?page={{ logs.next_page_number }}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_user_id %}&user_id={{ filter_user_id }}{% endif %}">Next</a>
+        </li>
+        <li class="page-item"><a class="page-link"
+                href="?page={{ logs.paginator.num_pages }}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_user_id %}&user_id={{ filter_user_id }}{% endif %}">Last
+                &raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

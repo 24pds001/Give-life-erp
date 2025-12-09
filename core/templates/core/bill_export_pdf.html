@@ -1,0 +1,43 @@
+{% load static %}
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #333; padding: 4px; font-size: 12px; }
+        th { background: #eee; }
+    </style>
+</head>
+<body>
+    <h2>Bill Export</h2>
+    <p>Generated: {{ now }}</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Invoice</th>
+                <th>Type</th>
+                <th>Customer</th>
+                <th>Created By</th>
+                <th>Created At (IST)</th>
+                <th>Total</th>
+                <th>Payment Status</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for bill in bills %}
+            <tr>
+                <td>{{ bill.invoice_number }}</td>
+                <td>{{ bill.get_bill_type_display }}</td>
+                <td>{% if bill.customer %}{{ bill.customer.shop_name }}{% else %}{{ bill.customer_name }}{% endif %}</td>
+                <td>{{ bill.created_by.username }}</td>
+                <td>{{ bill.created_at.astimezone|default:bill.created_at }}{% comment %} will be adjusted in code if possible {% endcomment %}</td>
+                <td>{{ bill.total_amount }}</td>
+                <td>{{ bill.get_payment_status_display }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

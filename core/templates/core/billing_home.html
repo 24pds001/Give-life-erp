@@ -1,0 +1,198 @@
+{% extends 'core/base.html' %}
+{% block title %}Billing & Invoices{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Billing & Invoices</h2>
+    </div>
+
+    <!-- Create Bill Cards -->
+    <div class="row g-4 mb-5">
+        <!-- Inner Bill -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm hover-shadow transition-all">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3 text-primary">
+                        <i class="bi bi-receipt display-4"></i>
+                    </div>
+                    <h4 class="card-title">New Inner Bill</h4>
+                    <p class="card-text text-muted small">Internal purposes.</p>
+                    <a href="{% url 'create_bill' 'INNER' %}" class="btn btn-primary stretched-link">Create Inner Bill</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Outer Bill -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm hover-shadow transition-all">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3 text-success">
+                        <i class="bi bi-receipt-cutoff display-4"></i>
+                    </div>
+                    <h4 class="card-title">New Outer Bill</h4>
+                    <p class="card-text text-muted small">External parties.</p>
+                    <a href="{% url 'create_bill' 'OUTER' %}" class="btn btn-success stretched-link">Create Outer Bill</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales Bill -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm hover-shadow transition-all">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3 text-info">
+                        <i class="bi bi-cart-check display-4"></i>
+                    </div>
+                    <h4 class="card-title">New Sales Bill</h4>
+                    <p class="card-text text-muted small">Sales invoice.</p>
+                    <a href="{% url 'create_bill' 'SALES' %}" class="btn btn-info text-white stretched-link">Create Sales Bill</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="q" class="form-control" placeholder="Invoice # or Customer" value="{{ q|default:'' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Bill Type</label>
+                    <select name="bill_type" class="form-select">
+                        <option value="">All Types</option>
+                        <option value="INNER" {% if filter_bill_type == 'INNER' %}selected{% endif %}>Inner Bill</option>
+                        <option value="OUTER" {% if filter_bill_type == 'OUTER' %}selected{% endif %}>Outer Bill</option>
+                        <option value="SALES" {% if filter_bill_type == 'SALES' %}selected{% endif %}>Sales Bill</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Status</label>
+                    <select name="payment_status" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="PAID" {% if filter_payment_status == 'PAID' %}selected{% endif %}>Paid</option>
+                        <option value="PENDING" {% if filter_payment_status == 'PENDING' %}selected{% endif %}>Pending</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" name="start_date" class="form-control" value="{{ filter_start_date|default:'' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">End Date</label>
+                    <input type="date" name="end_date" class="form-control" value="{{ filter_end_date|default:'' }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Invoice Table -->
+    <div class="card">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Recent Invoices</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Customer / Shop</th>
+                        <th>Created By</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bill in bills %}
+                    <tr>
+                        <td>{{ bill.invoice_number }}</td>
+                        <td>{{ bill.created_at|date:"d M Y" }} <small class="text-muted">{{ bill.created_at|date:"H:i" }}</small></td>
+                        <td>
+                            {% if bill.bill_type == 'INNER' %}<span class="badge bg-primary">Inner</span>
+                            {% elif bill.bill_type == 'OUTER' %}<span class="badge bg-success">Outer</span>
+                            {% else %}<span class="badge bg-info text-dark">Sales</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if bill.customer %}
+                                {{ bill.customer.shop_name }}
+                            {% else %}
+                                {{ bill.customer_name|default:"-" }}
+                            {% endif %}
+                        </td>
+                        <td>{{ bill.created_by.username }}</td>
+                        <td>INR {{ bill.total_amount }}</td>
+                        <td>
+                            {% if bill.payment_status == 'PAID' %}
+                                <span class="badge bg-success">Paid</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'bill_detail' bill.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">No invoices found matching your criteria.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if bills.has_other_pages %}
+        <div class="card-footer bg-white d-flex justify-content-center">
+            <nav>
+                <ul class="pagination mb-0">
+                    {% if bills.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ bills.previous_page_number }}&q={{ q }}&bill_type={{ filter_bill_type }}&payment_status={{ filter_payment_status }}&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}">Previous</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                    {% endif %}
+
+                    {% for i in bills.paginator.page_range %}
+                        {% if bills.number == i %}
+                        <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                        {% else %}
+                        <li class="page-item"><a class="page-link" href="?page={{ i }}&q={{ q }}&bill_type={{ filter_bill_type }}&payment_status={{ filter_payment_status }}&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}">{{ i }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if bills.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ bills.next_page_number }}&q={{ q }}&bill_type={{ filter_bill_type }}&payment_status={{ filter_payment_status }}&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}">Next</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">Next</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15) !important;
+    }
+
+    .transition-all {
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}

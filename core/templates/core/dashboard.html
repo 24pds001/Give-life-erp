@@ -1,0 +1,184 @@
+{% extends 'core/base.html' %}
+{% load permission_tags %}
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-3">Dashboard</h2>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Daily Sales</h6>
+                    <h4 class="card-title">INR {{ daily_sales }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Pending Payments</h6>
+                    <h4 class="card-title">{{ pending_payments }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <form method="get" class="d-flex">
+                <input type="text" name="q" class="form-control me-2" placeholder="Search Invoice Number..."
+                    style="max-width: 400px;">
+                <button class="btn btn-outline-primary">Search</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- Billing & Invoices: Merged -->
+        {% if user|has_module_access:'billing' %}
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'billing_home' %}" class="text-decoration-none">
+                <div class="card text-center p-3 bg-success text-white h-100">
+                    <div class="card-body">
+                        <div class="mb-2"><i class="bi bi-receipt" style="font-size:1.5rem"></i></div>
+                        <h5>Billing & Invoices</h5>
+                        <p class="display-6">{{ invoices_count }}</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Item Management -->
+        {% if user|has_module_access:'inventory' %}
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'item_list' %}" class="text-decoration-none">
+                <div class="card text-center p-3 bg-warning text-dark h-100">
+                    <div class="card-body">
+                        <div class="mb-2"><i class="bi bi-box-seam" style="font-size:1.5rem"></i></div>
+                        <h5>Item Management</h5>
+                        <p class="display-6">{{ items_count }}</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Customers -->
+        {% if user|has_module_access:'customers' %}
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'customer_list' %}" class="text-decoration-none">
+                <div class="card text-center p-3 bg-info text-white h-100">
+                    <div class="card-body">
+                        <div class="mb-2"><i class="bi bi-people" style="font-size:1.5rem"></i></div>
+                        <h5>Customers</h5>
+                        <p class="display-6">{{ vendors_count }}</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Inventory Tracking -->
+        {% if user|has_module_access:'inventory' %}
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'inventory_list' %}" class="text-decoration-none">
+                <div class="card text-center p-3 bg-secondary text-white h-100">
+                    <div class="card-body">
+                        <div class="mb-2"><i class="bi bi-stack" style="font-size:1.5rem"></i></div>
+                        <h5>Inventory Tracking</h5>
+                        <p class="display-6">{{ inventory_count }}</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Work Logs -->
+        {% if user|has_module_access:'worklogs' %}
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'worklog_list' %}" class="text-decoration-none">
+                <div class="card text-center p-3 bg-gradient-light-purple text-dark h-100">
+                    <div class="card-body">
+                        <div class="mb-2"><i class="bi bi-clock-history" style="font-size:1.5rem"></i></div>
+                        <h5>Work Logs</h5>
+                        <p class="display-6">-</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Vendor Management -->
+        {% if user|has_module_access:'vendors' %}
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'vendor_list' %}" class="text-decoration-none">
+                <div class="card text-center p-3 bg-danger text-white h-100">
+                    <div class="card-body">
+                        <div class="mb-2"><i class="bi bi-shop-window" style="font-size:1.5rem"></i></div>
+                        <h5>Vendor Management</h5>
+                        <p class="display-6">-</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Purchase Records -->
+        {% if user|has_module_access:'purchases' %}
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'purchase_list' %}" class="text-decoration-none">
+                <div class="card text-center p-3 bg-primary text-white h-100" style="--bs-bg-opacity: .8;">
+                    <div class="card-body">
+                        <div class="mb-2"><i class="bi bi-bag-check" style="font-size:1.5rem"></i></div>
+                        <h5>Purchase Records</h5>
+                        <p class="display-6">-</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Employee List -->
+        {% if user|has_module_access:'employees' %}
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'employee_list' %}" class="text-decoration-none">
+                <div class="card text-center p-3 bg-success text-white h-100" style="--bs-bg-opacity: .8;">
+                    <div class="card-body">
+                        <div class="mb-2"><i class="bi bi-person-badge-fill" style="font-size:1.5rem"></i></div>
+                        <h5>Employee List</h5>
+                        <p class="display-6">-</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-header">Recent Bills</div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Invoice</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bill in recent_bills %}
+                    <tr>
+                        <td>{{ bill.invoice_number }}</td>
+                        <td>{{ bill.created_at|date:"d M Y H:i" }}</td>
+                        <td>{{ bill.get_bill_type_display }}</td>
+                        <td>{{ bill.total_amount }}</td>
+                        <td>{{ bill.get_payment_status_display }}</td>
+                        <td><a href="{% url 'bill_detail' bill.id %}" class="btn btn-sm btn-info">View</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div </div>
+    </div>
+    {% endblock %}

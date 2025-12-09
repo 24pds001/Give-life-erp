@@ -1,0 +1,17 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<div class="container" style="max-width:600px">
+    <h2>Profile</h2>
+    <div class="card p-3 mb-3">
+        <p><strong>Username:</strong> {{ user.username }}</p>
+        <p><strong>Role:</strong> {{ user.get_role_display }}</p>
+        <p><strong>Contact:</strong> {{ user.contact_number }}</p>
+    </div>
+    <h4>Change Password</h4>
+    <form method="post">
+        {% csrf_token %}
+        {{ pwd_form.as_p }}
+        <button class="btn btn-primary" type="submit">Change Password</button>
+    </form>
+</div>
+{% endblock %}

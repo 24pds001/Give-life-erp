@@ -1,0 +1,72 @@
+{% extends 'core/base.html' %}
+{% block title %}Inventory Tracking{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Inventory Tracking</h2>
+            <p class="text-muted mb-0">Manage item issues and returns across outlets</p>
+        </div>
+        <a href="{% url 'create_inventory_log' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i>Log New Issue
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">Date Issued</th>
+                            <th>Outlet</th>
+                            <th>Item</th>
+                            <th>Taken</th>
+                            <th>Returned</th>
+                            <th>Status</th>
+                            <th class="text-end pe-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td class="ps-4">{{ log.date_issued|date:"d M Y" }}</td>
+                            <td>
+                                <span class="badge bg-light text-dark border">{{ log.get_outlet_name_display }}</span>
+                            </td>
+                            <td class="fw-medium">{{ log.item.name }}</td>
+                            <td>{{ log.quantity_taken }}</td>
+                            <td>{{ log.quantity_returned|default:"-" }}</td>
+                            <td>
+                                {% if log.is_closed %}
+                                <span class="badge bg-success-subtle text-success rounded-pill px-3">Closed</span>
+                                {% else %}
+                                <span class="badge bg-warning-subtle text-warning rounded-pill px-3">Open</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                {% if not log.is_closed %}
+                                <a href="{% url 'close_inventory_log' log.id %}" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-x-circle me-1"></i>Close & Bill
+                                </a>
+                                {% else %}
+                                <span class="text-muted small"><i class="bi bi-lock me-1"></i>Locked</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-clipboard-x fs-1 d-block mb-2"></i>
+                                No inventory logs found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

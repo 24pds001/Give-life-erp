@@ -1,0 +1,146 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<div class="container">
+    <div class="card p-3 mb-3">
+        <div class="d-flex align-items-center gap-3">
+            <h3 class="mb-0">Invoices</h3>
+            <div class="ms-auto">
+                <a href="{% url 'create_bill' 'SALES' %}" class="btn btn-primary">New Sales Invoice</a>
+            </div>
+        </div>
+        <hr>
+        <form method="get" class="row g-2">
+            <div class="col-md-3">
+                <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Invoice # or Customer">
+            </div>
+            <div class="col-md-2">
+                <select name="bill_type" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="INNER" {% if filter_bill_type=='INNER' %}selected{% endif %}>Inner</option>
+                    <option value="OUTER" {% if filter_bill_type=='OUTER' %}selected{% endif %}>Outer</option>
+                    <option value="SALES" {% if filter_bill_type=='SALES' %}selected{% endif %}>Sales</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="payment_status" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="PAID" {% if filter_payment_status=='PAID' %}selected{% endif %}>Paid</option>
+                    <option value="PENDING" {% if filter_payment_status=='PENDING' %}selected{% endif %}>Pending
+                    </option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <input type="date" name="start_date" value="{{ filter_start_date }}" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <input type="date" name="end_date" value="{{ filter_end_date }}" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <select name="sort_by" class="form-select">
+                    <option value="date_desc" {% if sort_by=='date_desc' %}selected{% endif %}>Date (Newest)</option>
+                    <option value="date_asc" {% if sort_by=='date_asc' %}selected{% endif %}>Date (Oldest)</option>
+                    <option value="amount_desc" {% if sort_by=='amount_desc' %}selected{% endif %}>Amount (High-Low)
+                    </option>
+                    <option value="amount_asc" {% if sort_by=='amount_asc' %}selected{% endif %}>Amount (Low-High)
+                    </option>
+                    <option value="invoice_desc" {% if sort_by=='invoice_desc' %}selected{% endif %}>Invoice # (Desc)
+                    </option>
+                    <option value="invoice_asc" {% if sort_by=='invoice_asc' %}selected{% endif %}>Invoice # (Asc)
+                    </option>
+                </select>
+            </div>
+            <div class="col-md-1 d-flex">
+                <button class="btn btn-secondary me-1" type="submit">Filter</button>
+                <a class="btn btn-outline-secondary" href="{% url 'invoice_list' %}">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="card p-3">
+        <div class="d-flex justify-content-between mb-2">
+            <div>
+                <strong>Showing</strong> {{ invoices.count }} records
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-sm btn-outline-success"
+                    href="{% url 'invoice_export' %}?{% if q %}q={{ q }}&{% endif %}{% if filter_bill_type %}bill_type={{ filter_bill_type }}&{% endif %}{% if filter_payment_status %}payment_status={{ filter_payment_status }}&{% endif %}{% if filter_start_date %}start_date={{ filter_start_date }}&{% endif %}{% if filter_end_date %}end_date={{ filter_end_date }}&{% endif %}format=csv">Export
+                    CSV</a>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Date (IST)</th>
+                        <th>Customer</th>
+                        <th>Bill Type</th>
+                        <th class="text-end">Total Sales</th>
+                        <th class="text-end">Advance</th>
+                        <th>Payment Type</th>
+                        <th>Payment Status</th>
+                        <th>Created By</th>
+                        <th>Modify</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in invoices.object_list %}
+                    <tr>
+                        <td>{{ b.invoice_number }}</td>
+                        <td>{{ b.created_at|timezone:"Asia/Kolkata"|date:'Y-m-d H:i:s' }}</td>
+                        <td>{% if b.customer %}{{ b.customer.shop_name }}{% else %}{{ b.customer_name }}{% endif %}</td>
+                        <td>{{ b.get_bill_type_display }}</td>
+                        <td class="text-end">{{ b.total_amount }}</td>
+                        <td class="text-end">{{ b.advance_payment }}</td>
+                        <td>{{ b.payment_type }}</td>
+                        <td>{{ b.get_payment_status_display }}</td>
+                        <td>{{ b.created_by.username }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                {% if user.is_supervisor_or_admin or b.created_by == user %}
+                                <a class="btn btn-sm btn-primary" href="{% url 'edit_bill' b.id %}">Edit</a>
+                                <a class="btn btn-sm btn-secondary" href="{% url 'bill_detail' b.id %}">Print</a>
+                                <form action="{% url 'delete_bill' b.id %}" method="post" style="display:inline">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+                                </form>
+                                {% else %}
+                                <a class="btn btn-sm btn-secondary" href="{% url 'bill_detail' b.id %}">View</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10">No invoices found for the selected criteria.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <nav aria-label="Page navigation" class="mt-3">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="?page={{ page_obj.previous_page_number }}&q={{ q }}&bill_type={{ filter_bill_type }}&payment_status={{ filter_payment_status }}&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&sort_by={{ sort_by }}">Previous</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                {% endif %}
+                <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{
+                        paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="?page={{ page_obj.next_page_number }}&q={{ q }}&bill_type={{ filter_bill_type }}&payment_status={{ filter_payment_status }}&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&sort_by={{ sort_by }}">Next</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Next</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endblock %}
