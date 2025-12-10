@@ -1,9 +1,11 @@
 from django.urls import path
+from django.contrib.auth import views as auth_views
 from . import views
 from . import invoice
 
 urlpatterns = [
-    path('', views.dashboard, name='dashboard'),
+    path('', auth_views.LoginView.as_view(template_name='core/login.html', redirect_authenticated_user=True), name='login_home'),
+    path('dashboard/', views.dashboard, name='dashboard'),
     path('users/', views.user_list, name='user_list'),
     path('users/create/', views.create_user, name='create_user'),
     path('users/<int:pk>/permissions/', views.manage_user_permissions, name='manage_user_permissions'),
