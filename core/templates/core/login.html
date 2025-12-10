@@ -1,19 +1,29 @@
 {% extends 'core/base.html' %}
+{% load static %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'core/css/login.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-center align-items-center" style="height: 80vh;">
-    <div class="card shadow p-4" style="width: 400px;">
-        <h3 class="text-center mb-3">Login</h3>
+<div class="login-header">
+    LOYOLA COLLEGE
+</div>
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-title">LOYOLA GIVE LIFE CAFE</div>
         <form method="post">
             {% csrf_token %}
             <div class="mb-3">
-                <label>Username:</label>
+                <label>user name</label>
                 <input type="text" name="username" class="form-control" required>
             </div>
             <div class="mb-3">
-                <label>Password</label>
+                <label>password</label>
                 <input type="password" name="password" class="form-control" required>
             </div>
-            <button type="submit" class="btn btn-primary w-100">Submit</button>
+            <button type="submit" class="btn btn-login">login</button>
         </form>
     </div>
 </div>
