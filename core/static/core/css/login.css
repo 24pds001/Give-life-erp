@@ -1,85 +1,193 @@
 body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Background Image */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background-image: url('../images/loyola_bg.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    background-attachment: fixed;
-    height: 100vh;
-    margin: 0;
-    font-family: 'Inter', sans-serif;
+    transform: scale(1.1);
+    filter: brightness(0.5);
+    z-index: -1;
 }
 
-.login-header {
-    background-color: #3b3b98; /* Purple similar to reference */
-    color: white;
-    text-align: center;
-    padding: 15px 0;
-    font-size: 2rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    width: 100%;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1000;
-}
-
+/* Main Container */
 .login-container {
     height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding-top: 60px; /* Offset for header */
 }
 
+/* Glassmorphism Card */
 .login-card {
-    background-color: rgba(255, 255, 255, 0.85); /* Semi-transparent white */
-    padding: 40px;
-    width: 400px;
-    text-align: center;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    border-radius: 2px; /* Slight rounded corners or 0 for sharp */
-}
-
-.login-title {
-    color: #5d5d5d;
-    font-size: 1.2rem;
-    font-weight: 500;
-    margin-bottom: 30px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.login-card .form-control {
-    border: 1px solid #000; /* Dark border as in reference */
-    border-radius: 5px; /* Sketchy look? No, keeping it clean but distinct */
-    margin-bottom: 2rem;
-    background: transparent;
-}
-
-.login-card label {
-    font-weight: 500;
-    color: #333;
-    float: left;
-    margin-bottom: 5px;
-}
-
-.btn-login {
-    background-color: white;
-    color: #000;
-    border: 1px solid #000;
-    padding: 8px 30px;
-    font-size: 1.1rem;
+    background: rgba(255, 255, 255, 0.144);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    padding: 60px 80px;
     width: auto;
-    border-radius: 5px;
+    min-width: 450px;
+    max-width: 90%;
+    text-align: center;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    border: 2px solid #000000;
+    /* Black Border */
+}
+
+/* Title Text */
+.login-title {
+    color: #ffffff;
+    font-size: 2.2rem;
+    font-weight: 900;
+    margin-bottom: 50px;
+    /* More space for floating labels */
+    margin-top: 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-family: 'Cinzel', serif;
+
+    text-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    -webkit-text-stroke: 0;
+
+    white-space: normal;
+    display: block;
+    line-height: 1.2;
+}
+
+/* Input Box Container for Floating Labels */
+.input-box {
+    position: relative;
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+/* Pill Shaped Input Fields */
+.login-card .form-control {
+    width: 100%;
+    padding: 15px 20px;
+    border: 2px solid #ffffff;
+    /* White border for input */
+    background: transparent;
+    border-radius: 50px;
+    /* Pill shape */
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
     transition: all 0.3s;
+    outline: none;
+    box-sizing: border-box;
+    /* Ensure padding doesn't affect width */
+}
+
+.login-card .form-control:focus {
+    border-color: #ffffff;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* Floating Label Styling */
+.input-box label {
+    position: absolute;
+    top: 50%;
+    left: 20px;
+    /* Match input padding */
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem;
+    font-weight: 500;
+    pointer-events: none;
+    /* Clicking label focuses input */
+    transition: 0.3s ease all;
+    background: transparent;
+    padding: 0 5px;
+    text-transform: capitalize;
+    /* "User name" -> "User Name" usually better, or keep as is */
+}
+
+/* Floating Animation on Focus or Valid (Typed) */
+.input-box input:focus~label,
+.input-box input:not(:placeholder-shown)~label {
+    top: 0;
+    font-size: 0.85rem;
+    /* Match theme or card bg? Card is glass. Needs solid to hide border? 
+                           Reference shows a small background pill or gradient. 
+                           Since card is glass, 'transparent' bg won't hide the border line behind the label. 
+                           I'll use a small trick or just set it to a color that blends or a gradient. 
+                           Given the complexity of glassmorphism, setting it to the purple header color (#3b3b98) 
+                           might look like a badge. Let's try matching the glass color approx or just grey?
+                           Actually, standard practice on glass is to not have the line cut, OR assume solid bg.
+                           Let's try a dark background pill since text is white. 
+                        */
+    background: #646464;
+    /* Fallback */
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 50%, #000 50%);
+    /* Hacky? No. */
+    /* Let's pick a color. The card is transparent. The user ref image 2 has a pill background for the label. 
+       Let's use a solid grey/white pill for the label background. */
+    background: rgba(100, 100, 100, 0.8);
+    /* Semi-transparent grey pill */
+    border-radius: 10px;
+    color: #fff;
+    font-weight: 700;
+}
+
+/* Ref Image 2 shows clean cut. To achieve that on transparent bg is hard without clip-path. 
+   I will use a solid background for the label that matches a "dark glass" look or just the purple theme.
+   Let's use the purple theme color for the label badge on top. */
+.input-box input:focus~label,
+.input-box input:not(:placeholder-shown)~label {
+    color: #fff;
+    border-radius: 4px;
+}
+
+/* Login Button */
+.btn-login {
+    background-color: #27702a;
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    padding: 15px 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    width: 100%;
+    border-radius: 50px;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    margin-top: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    letter-spacing: 2px;
 }
 
 .btn-login:hover {
-    background-color: #f0f0f0;
+    background-color: #cef3d4;
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    border-color: #fff;
 }
 
-/* Override bootstrap default container behavior if needed */
+/* Alignment Fixes */
+.main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+}
+
 .wrapper {
     background: transparent !important;
+}
+
+/* Helper to hide default placeholder since we use label */
+.input-box input::placeholder {
+    color: transparent;
 }

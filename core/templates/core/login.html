@@ -6,22 +6,18 @@
 {% endblock %}
 
 {% block content %}
-<div class="login-header">
-    LOYOLA COLLEGE
-</div>
-
 <div class="login-container">
     <div class="login-card">
-        <div class="login-title">LOYOLA GIVE LIFE CAFE</div>
+        <div class="login-title">LOYOLA GIVE LIFE<br>CAFE</div>
         <form method="post">
             {% csrf_token %}
-            <div class="mb-3">
-                <label>user name</label>
-                <input type="text" name="username" class="form-control" required>
+            <div class="input-box mb-4">
+                <input type="text" name="username" class="form-control" placeholder=" " required>
+                <label>Username</label>
             </div>
-            <div class="mb-3">
-                <label>password</label>
-                <input type="password" name="password" class="form-control" required>
+            <div class="input-box mb-4">
+                <input type="password" name="password" class="form-control" placeholder=" " required>
+                <label>Password</label>
             </div>
             <button type="submit" class="btn btn-login">login</button>
         </form>
