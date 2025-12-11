@@ -305,7 +305,20 @@ def create_bill(request, bill_type):
     if request.method == 'POST':
         form = BillForm(request.POST)
         formset = BillItemFormSet(request.POST)
-        if form.is_valid() and formset.is_valid():
+        
+        valid = form.is_valid() and formset.is_valid()
+        
+        # Specific validation for Inner and Outer Bills
+        if bill_type in ['INNER', 'OUTER']:
+            type_label = "Inner" if bill_type == 'INNER' else "Outer"
+            if not form.cleaned_data.get('customer'):
+                form.add_error('customer', f"Customer is required for {type_label} Bills.")
+                valid = False
+            if not form.cleaned_data.get('delivery_date'):
+                form.add_error('delivery_date', f"Delivery Date is required for {type_label} Bills.")
+                valid = False
+                
+        if valid:
             # 1. Aggregate items first to check if we have any valid items
             aggregated = {}
             for subform in formset:
@@ -526,7 +539,19 @@ def edit_bill(request, pk):
     if request.method == 'POST':
         form = BillForm(request.POST, instance=bill)
         formset = BillItemFormSet(request.POST, instance=bill)
-        if form.is_valid() and formset.is_valid():
+        
+        valid = form.is_valid() and formset.is_valid()
+
+        if bill.bill_type in ['INNER', 'OUTER']:
+            type_label = "Inner" if bill.bill_type == 'INNER' else "Outer"
+            if not form.cleaned_data.get('customer'):
+                form.add_error('customer', f"Customer is required for {type_label} Bills.")
+                valid = False
+            if not form.cleaned_data.get('delivery_date'):
+                form.add_error('delivery_date', f"Delivery Date is required for {type_label} Bills.")
+                valid = False
+
+        if valid:
             # 1. Aggregate items first
             aggregated = {}
             for subform in formset:
@@ -552,7 +577,8 @@ def edit_bill(request, pk):
 
             # 2. Check if empty
             if not aggregated:
-                messages.error(request, "Cannot save a bill with no items. Please add at least one item.")
+                # messages.error(request, "Cannot save a bill with no items. Please add at least one item.")
+                form.add_error(None, "Cannot save a bill with no items. Please add at least one item.")
                 items = Item.objects.all()
                 items_mapping = {item.id: str(item.price) for item in items}
                 if bill.bill_type == 'INNER':
