@@ -44,7 +44,7 @@ def invoice_list(request):
             pass
     if q:
         # search invoice number or customer name
-        qs = qs.filter(Q(invoice_number__icontains=q) | Q(customer__shop_name__icontains=q) | Q(customer_name__icontains=q))
+        qs = qs.filter(Q(invoice_number__icontains=q) | Q(customer__customer_name__icontains=q) | Q(customer_name__icontains=q))
 
     # Sorting
     if sort_by == 'date_asc':
@@ -115,7 +115,7 @@ def invoice_export(request):
         except Exception:
             pass
     if q:
-        qs = qs.filter(Q(invoice_number__icontains=q) | Q(customer__shop_name__icontains=q) | Q(customer_name__icontains=q))
+        qs = qs.filter(Q(invoice_number__icontains=q) | Q(customer__customer_name__icontains=q) | Q(customer_name__icontains=q))
 
     fmt = request.GET.get('format', 'csv')
     if fmt == 'csv':
@@ -126,7 +126,7 @@ def invoice_export(request):
         writer.writerow(['Invoice', 'Date (IST)', 'Customer', 'Bill Type', 'Total', 'Advance', 'Payment Type', 'Payment Status', 'Created By'])
         for b in qs:
             created_ist = b.created_at.astimezone(ZoneInfo('Asia/Kolkata')).strftime('%Y-%m-%d %H:%M:%S')
-            customer = b.customer.shop_name if b.customer else (b.customer_name or '')
+            customer = b.customer.customer_name if b.customer else (b.customer_name or '')
             writer.writerow([b.invoice_number, created_ist, customer, b.get_bill_type_display(), str(b.total_amount), str(b.advance_payment), b.payment_type, b.get_payment_status_display(), b.created_by.username])
         return response
     else:

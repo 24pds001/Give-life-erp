@@ -202,7 +202,7 @@ def delete_customer(request, pk):
     if request.method == 'POST':
         cust.delete()
         return redirect('customer_list')
-    return render(request, 'core/form_generic.html', {'form': None, 'title': f'Delete Customer {cust.shop_name}', 'object': cust})
+    return render(request, 'core/form_generic.html', {'form': None, 'title': f'Delete Customer {cust.customer_name}', 'object': cust})
 
 @login_required
 @user_passes_test(lambda u: check_permission(u, 'inventory'))
@@ -269,7 +269,7 @@ def billing_home(request):
         except Exception:
             pass
     if q:
-        qs = qs.filter(Q(invoice_number__icontains=q) | Q(customer__shop_name__icontains=q) | Q(customer_name__icontains=q))
+        qs = qs.filter(Q(invoice_number__icontains=q) | Q(customer__customer_name__icontains=q) | Q(customer_name__icontains=q))
 
     # Pagination
     page = request.GET.get('page', 1)
@@ -396,7 +396,7 @@ def bill_list(request):
         except Exception:
             pass
     if q:
-        qs = qs.filter(Q(invoice_number__icontains=q) | Q(customer__shop_name__icontains=q) | Q(customer_name__icontains=q))
+        qs = qs.filter(Q(invoice_number__icontains=q) | Q(customer__customer_name__icontains=q) | Q(customer_name__icontains=q))
 
     # paginate
     page = request.GET.get('page', 1)
@@ -458,7 +458,7 @@ def export_bills(request):
         writer.writerow(['Invoice', 'Type', 'Customer', 'Created By', 'Created At (IST)', 'Total', 'Payment Status'])
         for bill in qs:
             created_ist = bill.created_at.astimezone(ZoneInfo('Asia/Kolkata')).strftime('%Y-%m-%d %H:%M:%S')
-            customer = bill.customer.shop_name if bill.customer else (bill.customer_name or '')
+            customer = bill.customer.customer_name if bill.customer else (bill.customer_name or '')
             writer.writerow([bill.invoice_number, bill.get_bill_type_display(), customer, bill.created_by.username, created_ist, str(bill.total_amount), bill.get_payment_status_display()])
         return response
     elif fmt == 'pdf':

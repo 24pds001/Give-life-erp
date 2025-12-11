@@ -18,7 +18,7 @@ class BillItemInline(admin.TabularInline):
 class BillAdmin(admin.ModelAdmin):
 	list_display = ('invoice_number', 'bill_type', 'customer_display', 'total_amount', 'payment_status', 'created_at', 'created_by')
 	list_filter = ('bill_type', 'payment_status', 'created_at')
-	search_fields = ('invoice_number', 'customer__shop_name', 'created_by__username')
+	search_fields = ('invoice_number', 'customer__customer_name', 'created_by__username')
 	date_hierarchy = 'created_at'
 	inlines = (BillItemInline,)
 	actions = ('mark_as_paid',)
@@ -26,9 +26,9 @@ class BillAdmin(admin.ModelAdmin):
 	autocomplete_fields = ('customer',)
 
 	def customer_display(self, obj):
-		return obj.customer.shop_name if obj.customer else obj.customer_name
+		return obj.customer.customer_name if obj.customer else obj.customer_name
 	customer_display.short_description = 'Customer'
-	customer_display.admin_order_field = 'customer__shop_name'
+	customer_display.admin_order_field = 'customer__customer_name'
 
 	def mark_as_paid(self, request, queryset):
 		updated = queryset.update(payment_status='PAID')
@@ -38,10 +38,10 @@ class BillAdmin(admin.ModelAdmin):
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-	list_display = ('shop_name', 'contact_number', 'gst_number')
-	search_fields = ('shop_name', 'contact_number', 'gst_number')
-	list_editable = ('contact_number', 'gst_number')
-	ordering = ('shop_name',)
+	list_display = ('customer_name', 'contact_number', 'email_id')
+	search_fields = ('customer_name', 'contact_number', 'email_id')
+	list_editable = ('contact_number', 'email_id')
+	ordering = ('customer_name',)
 
 
 @admin.register(Item)

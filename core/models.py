@@ -65,13 +65,13 @@ class Item(models.Model):
         return self.name
 
 class Customer(models.Model):
-    shop_name = models.CharField(max_length=200)
+    customer_name = models.CharField(max_length=200)
     address = models.TextField(blank=True)
     contact_number = models.CharField(max_length=30, blank=True)
-    gst_number = models.CharField(max_length=50, blank=True)
+    email_id = models.EmailField(blank=True, null=True)
 
     def __str__(self):
-        return self.shop_name
+        return self.customer_name
 
 class Vendor(models.Model):
     vendor_id = models.CharField(max_length=50, unique=True)

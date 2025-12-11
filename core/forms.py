@@ -74,12 +74,12 @@ class InventoryLogForm(forms.ModelForm):
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
-        fields = ['shop_name', 'address', 'contact_number', 'gst_number']
+        fields = ['customer_name', 'address', 'contact_number', 'email_id']
         widgets = {
-            'shop_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'customer_name': forms.TextInput(attrs={'class': 'form-control'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'contact_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'gst_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'email_id': forms.EmailInput(attrs={'class': 'form-control'}),
         }
 
 class VendorForm(forms.ModelForm):

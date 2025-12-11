@@ -18,7 +18,8 @@
                     </div>
                     <h4 class="card-title">New Inner Bill</h4>
                     <p class="card-text text-muted small">Internal purposes.</p>
-                    <a href="{% url 'create_bill' 'INNER' %}" class="btn btn-primary stretched-link">Create Inner Bill</a>
+                    <a href="{% url 'create_bill' 'INNER' %}" class="btn btn-primary stretched-link">Create Inner
+                        Bill</a>
                 </div>
             </div>
         </div>
@@ -32,7 +33,8 @@
                     </div>
                     <h4 class="card-title">New Outer Bill</h4>
                     <p class="card-text text-muted small">External parties.</p>
-                    <a href="{% url 'create_bill' 'OUTER' %}" class="btn btn-success stretched-link">Create Outer Bill</a>
+                    <a href="{% url 'create_bill' 'OUTER' %}" class="btn btn-success stretched-link">Create Outer
+                        Bill</a>
                 </div>
             </div>
         </div>
@@ -46,7 +48,8 @@
                     </div>
                     <h4 class="card-title">New Sales Bill</h4>
                     <p class="card-text text-muted small">Sales invoice.</p>
-                    <a href="{% url 'create_bill' 'SALES' %}" class="btn btn-info text-white stretched-link">Create Sales Bill</a>
+                    <a href="{% url 'create_bill' 'SALES' %}" class="btn btn-info text-white stretched-link">Create
+                        Sales Bill</a>
                 </div>
             </div>
         </div>
@@ -58,28 +61,32 @@
             <form method="get" class="row g-3">
                 <div class="col-md-2">
                     <label class="form-label">Search</label>
-                    <input type="text" name="q" class="form-control" placeholder="Invoice # or Customer" value="{{ q|default:'' }}">
+                    <input type="text" name="q" class="form-control" placeholder="Invoice # or Customer"
+                        value="{{ q|default:'' }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Bill Type</label>
                     <select name="bill_type" class="form-select">
                         <option value="">All Types</option>
-                        <option value="INNER" {% if filter_bill_type == 'INNER' %}selected{% endif %}>Inner Bill</option>
-                        <option value="OUTER" {% if filter_bill_type == 'OUTER' %}selected{% endif %}>Outer Bill</option>
-                        <option value="SALES" {% if filter_bill_type == 'SALES' %}selected{% endif %}>Sales Bill</option>
+                        <option value="INNER" {% if filter_bill_type=='INNER' %}selected{% endif %}>Inner Bill
+                        </option>
+                        <option value="OUTER" {% if filter_bill_type=='OUTER' %}selected{% endif %}>Outer Bill</option>
+                        <option value="SALES" {% if filter_bill_type=='SALES' %}selected{% endif %}>Sales Bill</option>
                     </select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Status</label>
                     <select name="payment_status" class="form-select">
                         <option value="">All Statuses</option>
-                        <option value="PAID" {% if filter_payment_status == 'PAID' %}selected{% endif %}>Paid</option>
-                        <option value="PENDING" {% if filter_payment_status == 'PENDING' %}selected{% endif %}>Pending</option>
+                        <option value="PAID" {% if filter_payment_status=='PAID' %}selected{% endif %}>Paid</option>
+                        <option value="PENDING" {% if filter_payment_status=='PENDING' %}selected{% endif %}>Pending
+                        </option>
                     </select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Start Date</label>
-                    <input type="date" name="start_date" class="form-control" value="{{ filter_start_date|default:'' }}">
+                    <input type="date" name="start_date" class="form-control"
+                        value="{{ filter_start_date|default:'' }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">End Date</label>
@@ -115,7 +122,8 @@
                     {% for bill in bills %}
                     <tr>
                         <td>{{ bill.invoice_number }}</td>
-                        <td>{{ bill.created_at|date:"d M Y" }} <small class="text-muted">{{ bill.created_at|date:"H:i" }}</small></td>
+                        <td>{{ bill.created_at|date:"d M Y" }} <small class="text-muted">{{
+                                bill.created_at|date:"H:i"}}</small></td>
                         <td>
                             {% if bill.bill_type == 'INNER' %}<span class="badge bg-primary">Inner</span>
                             {% elif bill.bill_type == 'OUTER' %}<span class="badge bg-success">Outer</span>
@@ -123,18 +131,19 @@
                         </td>
                         <td>
                             {% if bill.customer %}
-                                {{ bill.customer.shop_name }}
-                            {% else %}
-                                {{ bill.customer_name|default:"-" }}
+                            {{ bill.customer.customer_name }}
+                            {% endif %}
+                            {% if bill.outlet_name %}
+                            {{ bill.get_outlet_name_display }}
                             {% endif %}
                         </td>
                         <td>{{ bill.created_by.username }}</td>
                         <td>INR {{ bill.total_amount }}</td>
                         <td>
                             {% if bill.payment_status == 'PAID' %}
-                                <span class="badge bg-success">Paid</span>
+                            <span class="badge bg-success">Paid</span>
                             {% else %}
-                                <span class="badge bg-warning text-dark">Pending</span>
+                            <span class="badge bg-warning text-dark">Pending</span>
                             {% endif %}
                         </td>
                         <td>
@@ -143,13 +152,14 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center py-4 text-muted">No invoices found matching your criteria.</td>
+                        <td colspan="8" class="text-center py-4 text-muted">No invoices found matching your criteria.
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        
+
         <!-- Pagination -->
         {% if bills.has_other_pages %}
         <div class="card-footer bg-white d-flex justify-content-center">
@@ -157,23 +167,27 @@
                 <ul class="pagination mb-0">
                     {% if bills.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ bills.previous_page_number }}&q={{ q }}&bill_type={{ filter_bill_type }}&payment_status={{ filter_payment_status }}&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}">Previous</a>
+                        <a class="page-link"
+                            href="?page={{ bills.previous_page_number }}&q={{ q }}&bill_type={{ filter_bill_type }}&payment_status={{ filter_payment_status }}&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}">Previous</a>
                     </li>
                     {% else %}
                     <li class="page-item disabled"><span class="page-link">Previous</span></li>
                     {% endif %}
 
                     {% for i in bills.paginator.page_range %}
-                        {% if bills.number == i %}
-                        <li class="page-item active"><span class="page-link">{{ i }}</span></li>
-                        {% else %}
-                        <li class="page-item"><a class="page-link" href="?page={{ i }}&q={{ q }}&bill_type={{ filter_bill_type }}&payment_status={{ filter_payment_status }}&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}">{{ i }}</a></li>
-                        {% endif %}
+                    {% if bills.number == i %}
+                    <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                    {% else %}
+                    <li class="page-item"><a class="page-link"
+                            href="?page={{ i }}&q={{ q }}&bill_type={{ filter_bill_type }}&payment_status={{ filter_payment_status }}&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}">{{
+                            i }}</a></li>
+                    {% endif %}
                     {% endfor %}
 
                     {% if bills.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ bills.next_page_number }}&q={{ q }}&bill_type={{ filter_bill_type }}&payment_status={{ filter_payment_status }}&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}">Next</a>
+                        <a class="page-link"
+                            href="?page={{ bills.next_page_number }}&q={{ q }}&bill_type={{ filter_bill_type }}&payment_status={{ filter_payment_status }}&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}">Next</a>
                     </li>
                     {% else %}
                     <li class="page-item disabled"><span class="page-link">Next</span></li>

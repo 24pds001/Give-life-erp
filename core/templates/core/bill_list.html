@@ -63,7 +63,7 @@
             <tr>
                 <td>{{ bill.invoice_number }}</td>
                 <td>{{ bill.get_bill_type_display }}</td>
-                <td>{% if bill.customer %}{{ bill.customer.shop_name }}{% else %}{{ bill.customer_name }}{% endif %}
+                <td>{% if bill.customer %}{{ bill.customer.customer_name }}{% else %}{{ bill.customer_name }}{% endif %}
                 </td>
                 <td>{{ bill.total_amount }}</td>
                 <td>{{ bill.get_payment_status_display }}</td>

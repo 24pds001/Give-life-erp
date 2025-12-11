@@ -2,7 +2,7 @@
 {% block content %}
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Customers / Vendors</h2>
+        <h2>Customer Management</h2>
         <a href="{% url 'create_customer' %}" class="btn btn-primary">Add Customer</a>
     </div>
 
@@ -11,30 +11,33 @@
             <table class="table table-striped mb-0">
                 <thead>
                     <tr>
-                        <th>Shop Name</th>
+                        <th>Customer Name</th>
                         <th>Address</th>
                         <th>Contact</th>
-                        <th>GST</th>
-                        <th>Actions</th>
+                        <th>Email</th>
+                        <th>Modify</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for c in customers %}
+                    {% for customer in customers %}
                     <tr>
-                        <td>{{ c.shop_name }}</td>
-                        <td>{{ c.address }}</td>
-                        <td>{{ c.contact_number }}</td>
-                        <td>{{ c.gst_number }}</td>
+                        <td>{{ customer.customer_name }}</td>
+                        <td>{{ customer.address }}</td>
+                        <td>{{ customer.contact_number }}</td>
+                        <td>{{ customer.email_id }}</td>
                         <td>
-                            <a class="btn btn-sm btn-primary" href="{% url 'edit_customer' c.id %}">Edit</a>
-                            <form action="{% url 'delete_customer' c.id %}" method="post" style="display:inline">
-                                {% csrf_token %}
-                                <button class="btn btn-sm btn-danger" type="submit">Delete</button>
-                            </form>
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'edit_customer' customer.pk %}"
+                                    class="btn btn-sm btn-outline-primary">Edit</a>
+                                <a href="{% url 'delete_customer' customer.pk %}"
+                                    class="btn btn-sm btn-outline-danger">Delete</a>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="5">No customers found.</td></tr>
+                    <tr>
+                        <td colspan="5">No customers found.</td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>

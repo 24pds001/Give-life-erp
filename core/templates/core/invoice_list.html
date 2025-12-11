@@ -89,7 +89,8 @@
                     <tr>
                         <td>{{ b.invoice_number }}</td>
                         <td>{{ b.created_at|timezone:"Asia/Kolkata"|date:'Y-m-d H:i:s' }}</td>
-                        <td>{% if b.customer %}{{ b.customer.shop_name }}{% else %}{{ b.customer_name }}{% endif %}</td>
+                        <td>{% if b.customer %}{{ b.customer.customer_name }}{% else %}{{ b.customer_name }}{% endif %}
+                        </td>
                         <td>{{ b.get_bill_type_display }}</td>
                         <td class="text-end">{{ b.total_amount }}</td>
                         <td class="text-end">{{ b.advance_payment }}</td>
