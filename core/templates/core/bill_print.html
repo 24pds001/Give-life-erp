@@ -49,7 +49,17 @@
                             {{ bill.get_payment_status_display }}
                         </span>
                     </p>
-                    <p class="mb-0"><strong>Mode:</strong> {{ bill.get_payment_type_display }}</p>
+                    <p class="mb-0"><strong>Mode:</strong> 
+                        {% with payments=bill.payments.all %}
+                            {% if payments %}
+                                {% for p in payments %}
+                                    {{ p.get_payment_type_display }}: ₹{{ p.amount }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                {{ bill.get_payment_type_display }}
+                            {% endif %}
+                        {% endwith %}
+                    </p>
                 </div>
             </div>
 

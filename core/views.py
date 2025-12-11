@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.db.models import Sum, Q
 from django.utils import timezone
 from .models import User, Item, Bill, BillItem, InventoryLog, Customer, Vendor, Attendance, StudentWorkLog, PurchaseRecord, VendorPayment
-from .forms import CustomUserCreationForm, BillForm, BillItemFormSet, ItemForm, InventoryLogForm, CustomerForm, VendorForm, AttendanceForm, StudentWorkLogForm, PurchaseRecordForm, VendorPaymentForm, UserPermissionsForm
+from .forms import CustomUserCreationForm, BillForm, BillItemFormSet, ItemForm, InventoryLogForm, CustomerForm, VendorForm, AttendanceForm, StudentWorkLogForm, PurchaseRecordForm, VendorPaymentForm, UserPermissionsForm, BillPaymentFormSet
 import json
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
@@ -304,9 +304,17 @@ def create_bill(request, bill_type):
     items = Item.objects.all()
     if request.method == 'POST':
         form = BillForm(request.POST)
+
         formset = BillItemFormSet(request.POST)
         
         valid = form.is_valid() and formset.is_valid()
+        
+        payment_formset = None
+        if bill_type == 'SALES':
+            payment_formset = BillPaymentFormSet(request.POST, prefix='payments')
+            valid = valid and payment_formset.is_valid()
+        
+        # Specific validation for Inner and Outer Bills
         
         # Specific validation for Inner and Outer Bills
         if bill_type in ['INNER', 'OUTER']:
@@ -395,16 +403,28 @@ def create_bill(request, bill_type):
                 total += Decimal(bi.price) * bi.quantity
             bill.total_amount = total
             bill.save()
+            
+            # Save payments (only for SALES)
+            if payment_formset:
+                payments = payment_formset.save(commit=False)
+                for payment in payments:
+                    payment.bill = bill
+                    payment.save()
+                for obj in payment_formset.deleted_objects:
+                    obj.delete()
+
             messages.success(request, "Bill Generated Successfully")
             return redirect('bill_detail', pk=bill.id)
     else:
         form = BillForm()
         formset = BillItemFormSet()
+        payment_formset = BillPaymentFormSet(prefix='payments')
     items = Item.objects.all()
     items_mapping = {item.id: str(item.price) for item in items}
     return render(request, template_name, {
         'form': form,
         'formset': formset,
+        'payment_formset': payment_formset,
         'bill_type': bill_type,
         'items': items,
         'items_json': json.dumps(items_mapping)
@@ -551,8 +571,9 @@ def edit_bill(request, pk):
     if request.method == 'POST':
         form = BillForm(request.POST, instance=bill)
         formset = BillItemFormSet(request.POST, instance=bill)
+        payment_formset = BillPaymentFormSet(request.POST, instance=bill, prefix='payments')
         
-        valid = form.is_valid() and formset.is_valid()
+        valid = form.is_valid() and formset.is_valid() and payment_formset.is_valid()
 
         if bill.bill_type in ['INNER', 'OUTER']:
             type_label = "Inner" if bill.bill_type == 'INNER' else "Outer"
@@ -639,11 +660,21 @@ def edit_bill(request, pk):
                 total += Decimal(bi.price) * bi.quantity
             bill.total_amount = total
             bill.save()
+            
+            # Save payments
+            payments = payment_formset.save(commit=False)
+            for payment in payments:
+                payment.bill = bill
+                payment.save()
+            for obj in payment_formset.deleted_objects:
+                obj.delete()
+
             messages.success(request, 'Bill updated successfully')
             return redirect('bill_detail', pk=bill.id)
     else:
         form = BillForm(instance=bill)
         formset = BillItemFormSet(instance=bill)
+        payment_formset = BillPaymentFormSet(instance=bill, prefix='payments')
         if bill.bill_type == 'INNER':
             template_name = 'core/bill_form_inner.html'
         elif bill.bill_type == 'OUTER':
@@ -655,6 +686,7 @@ def edit_bill(request, pk):
     return render(request, template_name, {
         'form': form,
         'formset': formset,
+        'payment_formset': payment_formset,
         'bill_type': bill.bill_type,
         'items': items,
         'items_json': json.dumps(items_mapping),

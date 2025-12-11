@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, Attendance, StudentWorkLog, PurchaseRecord, VendorPayment
+from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, Attendance, StudentWorkLog, PurchaseRecord, VendorPayment, BillPayment
 
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
@@ -46,6 +46,21 @@ class BillForm(forms.ModelForm):
             'delivery_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'student_employees': forms.SelectMultiple(attrs={'class': 'form-select', 'id': 'id_student_employees'}),
         }
+
+class BillPaymentForm(forms.ModelForm):
+    class Meta:
+        model = BillPayment
+        fields = ['payment_type', 'amount', 'reference_number']
+        widgets = {
+            'payment_type': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'Amount'}),
+            'reference_number': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'Ref No. (Optional)'}),
+        }
+
+BillPaymentFormSet = inlineformset_factory(
+    Bill, BillPayment, form=BillPaymentForm,
+    extra=0, can_delete=True
+)
 
 class BillItemForm(forms.ModelForm):
     class Meta:

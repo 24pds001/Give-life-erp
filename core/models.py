@@ -139,6 +139,8 @@ class Bill(models.Model):
     def balance_due(self):
         return self.total_amount - self.advance_payment
 
+
+
     def save(self, *args, **kwargs):
         if not self.invoice_number:
             prefix_map = {'INNER': 'IB', 'OUTER': 'OB', 'SALES': 'SB'}
@@ -156,6 +158,15 @@ class Bill(models.Model):
                 new_id = 1
             self.invoice_number = f"{prefix}-{new_id:04d}"
         super().save(*args, **kwargs)
+
+class BillPayment(models.Model):
+    bill = models.ForeignKey(Bill, related_name='payments', on_delete=models.CASCADE)
+    payment_type = models.CharField(max_length=20, choices=Bill.PAYMENT_TYPE_CHOICES)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    reference_number = models.CharField(max_length=50, blank=True)
+
+    def __str__(self):
+        return f"{self.get_payment_type_display()} - {self.amount}"
 
 class BillItem(models.Model):
     bill = models.ForeignKey(Bill, related_name='items', on_delete=models.CASCADE)
