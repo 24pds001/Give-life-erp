@@ -127,12 +127,17 @@ class Bill(models.Model):
     
     payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES, default='CASH') 
     advance_payment = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    advance_payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES, null=True, blank=True)
     payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS, default='PENDING')
     remarks = models.TextField(blank=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     delivery_date = models.DateField(null=True, blank=True)
     
     student_employees = models.ManyToManyField(User, related_name='assisted_bills', blank=True, limit_choices_to={'role': 'STUDENT'})
+
+    @property
+    def balance_due(self):
+        return self.total_amount - self.advance_payment
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:

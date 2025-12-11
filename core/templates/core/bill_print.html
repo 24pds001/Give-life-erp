@@ -89,14 +89,16 @@
                         </tr>
                         {% if bill.advance_payment > 0 %}
                         <tr>
-                            <td colspan="4" class="text-end text-muted">Advance Paid</td>
+                            <td colspan="4" class="text-end text-muted">Advance Paid ({{ bill.get_advance_payment_type_display|default:bill.get_payment_type_display }})</td>
                             <td class="text-end text-muted">- ₹{{ bill.advance_payment }}</td>
                         </tr>
                         <tr>
-                            <td colspan="4" class="text-end fw-bold">Balance Due</td>
-                            <td class="text-end fw-bold text-danger">₹{{
-                                bill.total_amount|add:bill.advance_payment|stringformat:"f" }}</td>
-                            {# Note: Calculation above is tricky in template, better to have a property in model #}
+                            <td colspan="4" class="text-end fw-bold">
+                                {% if bill.payment_status == 'PAID' %}Balance Paid{% else %}Balance Due{% endif %}
+                            </td>
+                            <td class="text-end fw-bold {% if bill.payment_status == 'PAID' %}text-success{% else %}text-danger{% endif %}">
+                                ₹{{ bill.balance_due }}
+                            </td>
                         </tr>
                         {% endif %}
                     </tfoot>
