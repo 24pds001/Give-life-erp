@@ -294,15 +294,19 @@ def billing_home(request):
 @login_required
 @user_passes_test(lambda u: check_permission(u, 'billing'))
 def create_bill(request, bill_type):
+    if bill_type == 'INNER':
+        template_name = 'core/bill_form_inner.html'
+    elif bill_type == 'OUTER':
+        template_name = 'core/bill_form_outer.html'
+    else:
+        template_name = 'core/bill_form_sales.html'
+
+    items = Item.objects.all()
     if request.method == 'POST':
         form = BillForm(request.POST)
         formset = BillItemFormSet(request.POST)
         if form.is_valid() and formset.is_valid():
-            bill = form.save(commit=False)
-            bill.bill_type = bill_type
-            bill.created_by = request.user
-            bill.save()
-            # Group identical items (same item or same custom name + price) before saving
+            # 1. Aggregate items first to check if we have any valid items
             aggregated = {}
             for subform in formset:
                 if not subform.cleaned_data or subform.cleaned_data.get('DELETE', False):
@@ -312,6 +316,10 @@ def create_bill(request, bill_type):
                 custom_name = cd.get('custom_item_name') or ''
                 qty = int(cd.get('quantity') or 0)
                 price = cd.get('price')
+                
+                if qty <= 0:
+                    continue
+
                 if item and (price is None or price == ''):
                     price = item.price
                 # normalize price to Decimal
@@ -321,11 +329,35 @@ def create_bill(request, bill_type):
                     aggregated[key]['quantity'] += qty
                 else:
                     aggregated[key] = {'item': item, 'custom_item_name': custom_name, 'price': price, 'quantity': qty}
+            
+            # 2. Check if empty
+            if not aggregated:
+                messages.error(request, "Cannot generate a bill with no items. Please add at least one item.")
+                items = Item.objects.all()
+                items_mapping = {item.id: str(item.price) for item in items}
+                if bill_type == 'INNER':
+                    template_name = 'core/bill_form_inner.html'
+                elif bill_type == 'OUTER':
+                    template_name = 'core/bill_form_outer.html'
+                else:
+                    template_name = 'core/bill_form_sales.html'
 
+                return render(request, template_name, {
+                    'form': form,
+                    'formset': formset,
+                    'bill_type': bill_type,
+                    'items': items,
+                    'items_json': json.dumps(items_mapping)
+                })
+
+            # 3. Save Bill and Items
+            bill = form.save(commit=False)
+            bill.bill_type = bill_type
+            bill.created_by = request.user
+            bill.save()
+            
             total = Decimal('0')
             for v in aggregated.values():
-                if v['quantity'] <= 0:
-                    continue
                 bi = BillItem.objects.create(
                     bill=bill,
                     item=v['item'],
@@ -343,7 +375,7 @@ def create_bill(request, bill_type):
         formset = BillItemFormSet()
     items = Item.objects.all()
     items_mapping = {item.id: str(item.price) for item in items}
-    return render(request, 'core/bill_form.html', {
+    return render(request, template_name, {
         'form': form,
         'formset': formset,
         'bill_type': bill_type,
@@ -481,13 +513,19 @@ def edit_bill(request, pk):
     if not (request.user.is_supervisor_or_admin() or bill.created_by == request.user or request.user.has_module_access('billing')):
         messages.error(request, "Unauthorized to edit this bill")
         return redirect('bill_list')
+    if bill.bill_type == 'INNER':
+        template_name = 'core/bill_form_inner.html'
+    elif bill.bill_type == 'OUTER':
+        template_name = 'core/bill_form_outer.html'
+    else:
+        template_name = 'core/bill_form_sales.html'
+
+    items = Item.objects.all()
     if request.method == 'POST':
         form = BillForm(request.POST, instance=bill)
         formset = BillItemFormSet(request.POST, instance=bill)
         if form.is_valid() and formset.is_valid():
-            bill = form.save(commit=False)
-            bill.save()
-            # Aggregate formset items and replace existing BillItems with grouped ones
+            # 1. Aggregate items first
             aggregated = {}
             for subform in formset:
                 if not subform.cleaned_data or subform.cleaned_data.get('DELETE', False):
@@ -497,6 +535,10 @@ def edit_bill(request, pk):
                 custom_name = cd.get('custom_item_name') or ''
                 qty = int(cd.get('quantity') or 0)
                 price = cd.get('price')
+                
+                if qty <= 0:
+                    continue
+
                 if item and (price is None or price == ''):
                     price = item.price
                 price = Decimal(price or 0)
@@ -506,12 +548,35 @@ def edit_bill(request, pk):
                 else:
                     aggregated[key] = {'item': item, 'custom_item_name': custom_name, 'price': price, 'quantity': qty}
 
+            # 2. Check if empty
+            if not aggregated:
+                messages.error(request, "Cannot save a bill with no items. Please add at least one item.")
+                items = Item.objects.all()
+                items_mapping = {item.id: str(item.price) for item in items}
+                if bill.bill_type == 'INNER':
+                    template_name = 'core/bill_form_inner.html'
+                elif bill.bill_type == 'OUTER':
+                    template_name = 'core/bill_form_outer.html'
+                else:
+                    template_name = 'core/bill_form_sales.html'
+
+                return render(request, template_name, {
+                    'form': form,
+                    'formset': formset,
+                    'bill_type': bill.bill_type,
+                    'items': items,
+                    'items_json': json.dumps(items_mapping),
+                    'editing': True,
+                })
+
+            # 3. Save Bill and Items
+            bill = form.save(commit=False)
+            bill.save()
+            
             # remove existing items and recreate grouped ones
             bill.items.all().delete()
             total = Decimal('0')
             for v in aggregated.values():
-                if v['quantity'] <= 0:
-                    continue
                 bi = BillItem.objects.create(
                     bill=bill,
                     item=v['item'],
@@ -527,9 +592,15 @@ def edit_bill(request, pk):
     else:
         form = BillForm(instance=bill)
         formset = BillItemFormSet(instance=bill)
+        if bill.bill_type == 'INNER':
+            template_name = 'core/bill_form_inner.html'
+        elif bill.bill_type == 'OUTER':
+            template_name = 'core/bill_form_outer.html'
+        else:
+            template_name = 'core/bill_form_sales.html'
     items = Item.objects.all()
     items_mapping = {item.id: str(item.price) for item in items}
-    return render(request, 'core/bill_form.html', {
+    return render(request, template_name, {
         'form': form,
         'formset': formset,
         'bill_type': bill.bill_type,

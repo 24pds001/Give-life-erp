@@ -1,0 +1,335 @@
+{% extends 'core/base.html' %}
+{% block title %}Create Outer Bill{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Create Outer Bill</h2>
+            <p class="text-muted mb-0">Generate a new external invoice</p>
+        </div>
+        <a href="{% url 'billing_home' %}" class="btn btn-light border">
+            <i class="bi bi-arrow-left me-2"></i>Back to Bills
+        </a>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-light py-3">
+                <h6 class="mb-0 fw-bold text-uppercase small text-muted">Bill Details</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-6 field-customer">
+                        <label class="form-label fw-medium">Customer</label>
+                        {{ form.customer }}
+                    </div>
+                    <div class="col-md-6 field-delivery">
+                        <label class="form-label fw-medium">Delivery Date</label>
+                        {{ form.delivery_date }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-uppercase small text-muted">Items</h6>
+                <button type="button" class="btn btn-sm btn-primary" id="add-row">
+                    <i class="bi bi-plus-lg me-1"></i>Add Item
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="items-table">
+                        <thead class="bg-light">
+                            <tr>
+                                <th style="width: 30%;">Item</th>
+                                <th style="width: 25%;">Custom Name</th>
+                                <th style="width: 10%;">Qty</th>
+                                <th style="width: 15%;">Price</th>
+                                <th class="text-end" style="width: 15%;">Total</th>
+                                <th class="text-center" style="width: 5%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ formset.management_form }}
+                            {% for subform in formset %}
+                            <tr class="item-row">
+                                <td>{{ subform.item }}</td>
+                                <td>{{ subform.custom_item_name }}</td>
+                                <td>{{ subform.quantity }}</td>
+                                <td class="price-input-cell">{{ subform.price }}</td>
+                                <td class="text-end fw-bold row-total">0.00</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-btn" title="Remove Item">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <div class="d-none">
+                                        {{ subform.DELETE }}
+                                    </div>
+                                </td>
+                                {% for hidden in subform.hidden_fields %}{{ hidden }}{% endfor %}
+                            </tr>
+                            {% endfor %}
+
+                            {# Empty form template #}
+                            <tr id="empty-form-row" class="item-row" style="display:none">
+                                <td>{{ formset.empty_form.item }}</td>
+                                <td>{{ formset.empty_form.custom_item_name }}</td>
+                                <td>{{ formset.empty_form.quantity }}</td>
+                                <td class="price-input-cell">{{ formset.empty_form.price }}</td>
+                                <td class="text-end fw-bold row-total">0.00</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-btn" title="Remove Item">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <div class="d-none">
+                                        {{ formset.empty_form.DELETE }}
+                                    </div>
+                                </td>
+                                {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+                            </tr>
+                        </tbody>
+                        <tfoot class="bg-light">
+                            <tr>
+                                <td colspan="4" class="text-end fw-bold text-uppercase small text-muted pt-3">Grand Total</td>
+                                <td class="text-end fw-bold fs-5 text-primary pt-3" id="grand-total">0.00</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium">Payment Status</label>
+                        {{ form.payment_status }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium">Payment Type</label>
+                        {{ form.payment_type }}
+                    </div>
+                    <div class="col-md-4 field-advance">
+                        <label class="form-label fw-medium">Advance Payment</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">₹</span>
+                            {{ form.advance_payment }}
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label fw-medium">Remarks</label>
+                        {{ form.remarks }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-5">
+            <button type="button" class="btn btn-light btn-lg border px-5 me-md-2"
+                onclick="history.back()">Cancel</button>
+            <button type="submit" class="btn btn-success btn-lg px-5">
+                <i class="bi bi-check-lg me-2"></i>Generate Bill
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    const itemPrices = {{ items_json| safe }} || {};
+
+    function recalcRow(row) {
+        const qtyInput = row.querySelector('.qty-input');
+        const priceInput = row.querySelector('.price-input');
+        const totalCell = row.querySelector('.row-total');
+
+        if (!qtyInput || !priceInput) return;
+
+        const qty = parseFloat(qtyInput.value) || 0;
+        const price = parseFloat(priceInput.value) || 0;
+        const rowTotal = (qty * price).toFixed(2);
+        if (totalCell) totalCell.textContent = rowTotal;
+        recalcGrandTotal();
+    }
+
+    function recalcGrandTotal() {
+        let sum = 0;
+        document.querySelectorAll('#items-table .row-total').forEach(td => {
+            const row = td.closest('tr');
+            if (row.style.display !== 'none') {
+                sum += parseFloat(td.textContent) || 0;
+            }
+        });
+        document.getElementById('grand-total').textContent = '₹ ' + sum.toFixed(2);
+    }
+
+    function attachListenersToRow(row) {
+        const select = row.querySelector('.item-selector');
+        const qty = row.querySelector('.qty-input');
+        const price = row.querySelector('.price-input');
+        const deleteBtn = row.querySelector('.delete-btn');
+        const deleteCheckbox = row.querySelector('input[type=checkbox][name$="-DELETE"]');
+
+        if (select) select.classList.add('form-select');
+        if (qty) qty.classList.add('form-control', 'qty-input');
+        if (price) price.classList.add('form-control', 'price-input');
+        const customName = row.querySelector('input[name$="-custom_item_name"]');
+        if (customName) customName.classList.add('form-control');
+
+        if (select && !select._attached) {
+            select._attached = true;
+            select.addEventListener('change', function () {
+                const val = select.value;
+                if (val && itemPrices[val]) {
+                    if (price) price.value = itemPrices[val];
+                }
+                recalcRow(row);
+            });
+        }
+        if (qty && !qty._attached) {
+            qty._attached = true;
+            qty.addEventListener('input', function () { recalcRow(row); });
+        }
+        if (price && !price._attached) {
+            price._attached = true;
+            price.addEventListener('input', function () { recalcRow(row); });
+        }
+        
+        if (deleteBtn && !deleteBtn._attached) {
+            deleteBtn._attached = true;
+            deleteBtn.addEventListener('click', function() {
+                const tr = deleteBtn.closest('tr');
+                if (tr.id === 'empty-form-row') return; 
+                
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    tr.style.display = 'none';
+                } else {
+                    tr.remove();
+                }
+                recalcGrandTotal();
+            });
+        }
+    }
+
+    function addRowFromEmpty() {
+        const tbody = document.querySelector('#items-table tbody');
+        const totalForms = document.querySelector('#id_items-TOTAL_FORMS'); 
+        const idx = parseInt(totalForms.value);
+        const emptyRow = document.getElementById('empty-form-row');
+        const newRow = emptyRow.cloneNode(true);
+        newRow.id = ''; 
+        newRow.style.display = '';
+
+        newRow.innerHTML = newRow.innerHTML.replace(/__prefix__/g, idx);
+
+        newRow.querySelectorAll('input, select, textarea').forEach(el => {
+            if (el.type !== 'hidden') {
+                if (el.tagName === 'SELECT') el.selectedIndex = 0;
+                else if (el.type === 'checkbox') el.checked = false;
+                else el.value = '';
+            }
+        });
+
+        tbody.insertBefore(newRow, emptyRow);
+        totalForms.value = idx + 1;
+
+        attachListenersToRow(newRow);
+        recalcRow(newRow);
+    }
+
+    document.getElementById('add-row').addEventListener('click', addRowFromEmpty);
+
+    function togglePaymentType() {
+        const statusField = document.getElementById('id_payment_status');
+        const typeFieldContainer = document.getElementById('id_payment_type').closest('.col-md-6');
+        
+        if (!statusField || !typeFieldContainer) return;
+
+        if (statusField.value === 'PENDING') {
+            typeFieldContainer.style.display = 'none';
+        } else {
+            typeFieldContainer.style.display = 'block';
+        }
+    }
+
+    // Form submission validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        let errors = [];
+
+        // 1. Validate Customer & Date (Outer Bill)
+        const customer = document.getElementById('id_customer');
+        if (customer && !customer.value) {
+            errors.push("Customer is required for Outer bills.");
+        }
+        const deliveryDate = document.getElementById('id_delivery_date');
+        if (deliveryDate && !deliveryDate.value) {
+            errors.push("Delivery Date is required for Outer bills.");
+        }
+
+        // 2. Validate Items and Quantity
+        let visibleRows = 0;
+        let validItems = 0;
+        document.querySelectorAll('#items-table tbody tr.item-row').forEach(row => {
+            if (row.id !== 'empty-form-row' && row.style.display !== 'none') {
+                const del = row.querySelector('input[type=checkbox][name$="-DELETE"]');
+                if (!del || !del.checked) {
+                    visibleRows++;
+                    const qtyInput = row.querySelector('.qty-input');
+                    const qty = parseFloat(qtyInput.value) || 0;
+                    if (qty <= 0) {
+                        errors.push("Quantity must be greater than 0 for all items.");
+                    } else {
+                        validItems++;
+                    }
+                }
+            }
+        });
+
+        if (visibleRows === 0) {
+            errors.push("Please add at least one item to the bill.");
+        }
+
+        // 3. Validate Grand Total
+        const totalText = document.getElementById('grand-total').textContent.replace('₹ ', '');
+        const grandTotal = parseFloat(totalText) || 0;
+        if (grandTotal <= 0) {
+            errors.push("Grand Total must be greater than 0.");
+        }
+
+        if (errors.length > 0) {
+            e.preventDefault();
+            alert(errors.join('\n'));
+            return false;
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const statusField = document.getElementById('id_payment_status');
+        if (statusField) {
+            statusField.addEventListener('change', togglePaymentType);
+            togglePaymentType();
+        }
+
+        const formFields = document.querySelectorAll('.card-body .row input, .card-body .row select, .card-body .row textarea');
+        formFields.forEach(field => {
+            if (field.tagName === 'SELECT') field.classList.add('form-select');
+            else field.classList.add('form-control');
+        });
+
+        document.querySelectorAll('#items-table tbody tr.item-row').forEach(row => {
+            if (row.id !== 'empty-form-row') {
+                attachListenersToRow(row);
+                recalcRow(row);
+            }
+        });
+        recalcGrandTotal();
+    });
+</script>
+{% endblock %}

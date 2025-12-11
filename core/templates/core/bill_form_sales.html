@@ -1,12 +1,12 @@
 {% extends 'core/base.html' %}
-{% block title %}Create {{ bill_type|title }} Bill{% endblock %}
+{% block title %}Create Sales Bill{% endblock %}
 
 {% block content %}
 <div class="container-fluid p-0">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-1">Create {{ bill_type|title }} Bill</h2>
-            <p class="text-muted mb-0">Generate a new invoice</p>
+            <h2 class="mb-1">Create Sales Bill</h2>
+            <p class="text-muted mb-0">Generate a new sales invoice</p>
         </div>
         <a href="{% url 'billing_home' %}" class="btn btn-light border">
             <i class="bi bi-arrow-left me-2"></i>Back to Bills
@@ -21,25 +21,9 @@
             </div>
             <div class="card-body p-4">
                 <div class="row g-4">
-                    <div class="col-md-6 field-customer">
-                        <label class="form-label fw-medium">Customer</label>
-                        {{ form.customer }}
-                    </div>
                     <div class="col-md-6 field-outlet">
                         <label class="form-label fw-medium">Outlet (Sales Bill)</label>
                         {{ form.outlet_name }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-medium">Payment Type</label>
-                        {{ form.payment_type }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-medium">Payment Status</label>
-                        {{ form.payment_status }}
-                    </div>
-                    <div class="col-md-6 field-delivery">
-                        <label class="form-label fw-medium">Delivery Date</label>
-                        {{ form.delivery_date }}
                     </div>
                 </div>
             </div>
@@ -75,7 +59,10 @@
                                 <td class="price-input-cell">{{ subform.price }}</td>
                                 <td class="text-end fw-bold row-total">0.00</td>
                                 <td class="text-center">
-                                    <div class="form-check d-flex justify-content-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-btn" title="Remove Item">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <div class="d-none">
                                         {{ subform.DELETE }}
                                     </div>
                                 </td>
@@ -91,7 +78,10 @@
                                 <td class="price-input-cell">{{ formset.empty_form.price }}</td>
                                 <td class="text-end fw-bold row-total">0.00</td>
                                 <td class="text-center">
-                                    <div class="form-check d-flex justify-content-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-btn" title="Remove Item">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <div class="d-none">
                                         {{ formset.empty_form.DELETE }}
                                     </div>
                                 </td>
@@ -100,8 +90,7 @@
                         </tbody>
                         <tfoot class="bg-light">
                             <tr>
-                                <td colspan="4" class="text-end fw-bold text-uppercase small text-muted pt-3">Grand
-                                    Total</td>
+                                <td colspan="4" class="text-end fw-bold text-uppercase small text-muted pt-3">Grand Total</td>
                                 <td class="text-end fw-bold fs-5 text-primary pt-3" id="grand-total">0.00</td>
                                 <td></td>
                             </tr>
@@ -114,12 +103,13 @@
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body p-4">
                 <div class="row g-4">
-                    <div class="col-md-4 field-advance">
-                        <label class="form-label fw-medium">Advance Payment</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light">₹</span>
-                            {{ form.advance_payment }}
-                        </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium">Payment Status</label>
+                        {{ form.payment_status }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium">Payment Type</label>
+                        {{ form.payment_type }}
                     </div>
                     <div class="col-md-8">
                         <label class="form-label fw-medium">Remarks</label>
@@ -160,9 +150,8 @@
     function recalcGrandTotal() {
         let sum = 0;
         document.querySelectorAll('#items-table .row-total').forEach(td => {
-            // Only sum visible rows
-            const deleteCheckbox = td.closest('tr').querySelector('input[type=checkbox][name$="-DELETE"]');
-            if (!deleteCheckbox || !deleteCheckbox.checked) { // If checkbox doesn't exist or is not checked
+            const row = td.closest('tr');
+            if (row.style.display !== 'none') {
                 sum += parseFloat(td.textContent) || 0;
             }
         });
@@ -173,14 +162,12 @@
         const select = row.querySelector('.item-selector');
         const qty = row.querySelector('.qty-input');
         const price = row.querySelector('.price-input');
-        const deleteInput = row.querySelector('input[type=checkbox][name$="-DELETE"]');
+        const deleteBtn = row.querySelector('.delete-btn');
+        const deleteCheckbox = row.querySelector('input[type=checkbox][name$="-DELETE"]');
 
-        // Add classes for styling if not present (assuming Django form widgets don't add them)
         if (select) select.classList.add('form-select');
         if (qty) qty.classList.add('form-control', 'qty-input');
         if (price) price.classList.add('form-control', 'price-input');
-
-        // Custom name input
         const customName = row.querySelector('input[name$="-custom_item_name"]');
         if (customName) customName.classList.add('form-control');
 
@@ -202,14 +189,18 @@
             price._attached = true;
             price.addEventListener('input', function () { recalcRow(row); });
         }
-        if (deleteInput && !deleteInput._attached) {
-            deleteInput._attached = true;
-            deleteInput.addEventListener('change', function () {
-                const tr = deleteInput.closest('tr');
-                if (deleteInput.checked) {
+        
+        if (deleteBtn && !deleteBtn._attached) {
+            deleteBtn._attached = true;
+            deleteBtn.addEventListener('click', function() {
+                const tr = deleteBtn.closest('tr');
+                if (tr.id === 'empty-form-row') return; 
+                
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
                     tr.style.display = 'none';
                 } else {
-                    tr.style.display = '';
+                    tr.remove();
                 }
                 recalcGrandTotal();
             });
@@ -218,26 +209,24 @@
 
     function addRowFromEmpty() {
         const tbody = document.querySelector('#items-table tbody');
-        const totalForms = document.querySelector('#id_items-TOTAL_FORMS'); // Standard Django management form ID
+        const totalForms = document.querySelector('#id_items-TOTAL_FORMS'); 
         const idx = parseInt(totalForms.value);
         const emptyRow = document.getElementById('empty-form-row');
         const newRow = emptyRow.cloneNode(true);
-        newRow.id = ''; // Remove id
+        newRow.id = ''; 
         newRow.style.display = '';
 
-        // replace __prefix__ in inputs/ids/names
         newRow.innerHTML = newRow.innerHTML.replace(/__prefix__/g, idx);
 
-        // clear values
         newRow.querySelectorAll('input, select, textarea').forEach(el => {
             if (el.type !== 'hidden') {
                 if (el.tagName === 'SELECT') el.selectedIndex = 0;
+                else if (el.type === 'checkbox') el.checked = false;
                 else el.value = '';
             }
         });
 
-        // append and update totalForms
-        tbody.insertBefore(newRow, emptyRow); // Insert before the hidden empty row template
+        tbody.insertBefore(newRow, emptyRow);
         totalForms.value = idx + 1;
 
         attachListenersToRow(newRow);
@@ -246,35 +235,73 @@
 
     document.getElementById('add-row').addEventListener('click', addRowFromEmpty);
 
-    const billType = "{{ bill_type }}";
+    function togglePaymentType() {
+        const statusField = document.getElementById('id_payment_status');
+        const typeFieldContainer = document.getElementById('id_payment_type').closest('.col-md-6');
+        
+        if (!statusField || !typeFieldContainer) return;
 
-    function toggleFields() {
-        // Helper to show/hide
-        const show = (sel) => document.querySelectorAll(sel).forEach(el => el.style.display = 'block');
-        const hide = (sel) => document.querySelectorAll(sel).forEach(el => el.style.display = 'none');
-
-        // Reset all
-        hide('.field-customer');
-        hide('.field-outlet');
-        hide('.field-advance');
-        hide('.field-delivery');
-
-        if (billType === 'INNER') {
-            show('.field-customer');
-            show('.field-delivery');
-        } else if (billType === 'OUTER') {
-            show('.field-customer');
-            show('.field-advance');
-            show('.field-delivery');
-        } else if (billType === 'SALES') {
-            show('.field-outlet');
+        if (statusField.value === 'PENDING') {
+            typeFieldContainer.style.display = 'none';
+        } else {
+            typeFieldContainer.style.display = 'block';
         }
     }
 
-    // attach listeners to existing rows on load
+    // Form submission validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        let errors = [];
+
+        // 1. Validate Outlet (Sales Bill)
+        const outlet = document.getElementById('id_outlet_name');
+        if (outlet && !outlet.value) {
+            errors.push("Outlet is required for Sales bills.");
+        }
+
+        // 2. Validate Items and Quantity
+        let visibleRows = 0;
+        let validItems = 0;
+        document.querySelectorAll('#items-table tbody tr.item-row').forEach(row => {
+            if (row.id !== 'empty-form-row' && row.style.display !== 'none') {
+                const del = row.querySelector('input[type=checkbox][name$="-DELETE"]');
+                if (!del || !del.checked) {
+                    visibleRows++;
+                    const qtyInput = row.querySelector('.qty-input');
+                    const qty = parseFloat(qtyInput.value) || 0;
+                    if (qty <= 0) {
+                        errors.push("Quantity must be greater than 0 for all items.");
+                    } else {
+                        validItems++;
+                    }
+                }
+            }
+        });
+
+        if (visibleRows === 0) {
+            errors.push("Please add at least one item to the bill.");
+        }
+
+        // 3. Validate Grand Total
+        const totalText = document.getElementById('grand-total').textContent.replace('₹ ', '');
+        const grandTotal = parseFloat(totalText) || 0;
+        if (grandTotal <= 0) {
+            errors.push("Grand Total must be greater than 0.");
+        }
+
+        if (errors.length > 0) {
+            e.preventDefault();
+            alert(errors.join('\n'));
+            return false;
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', function () {
-        toggleFields();
-        // Add classes to main form fields
+        const statusField = document.getElementById('id_payment_status');
+        if (statusField) {
+            statusField.addEventListener('change', togglePaymentType);
+            togglePaymentType();
+        }
+
         const formFields = document.querySelectorAll('.card-body .row input, .card-body .row select, .card-body .row textarea');
         formFields.forEach(field => {
             if (field.tagName === 'SELECT') field.classList.add('form-select');
