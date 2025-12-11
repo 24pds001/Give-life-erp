@@ -43,7 +43,7 @@ class BillForm(forms.ModelForm):
             'payment_status': forms.Select(attrs={'class': 'form-select'}),
             'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'delivery_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'student_employees': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+            'student_employees': forms.SelectMultiple(attrs={'class': 'form-select', 'id': 'id_student_employees'}),
         }
 
 class BillItemForm(forms.ModelForm):
