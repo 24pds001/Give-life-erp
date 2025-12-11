@@ -131,6 +131,8 @@ class Bill(models.Model):
     remarks = models.TextField(blank=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     delivery_date = models.DateField(null=True, blank=True)
+    
+    student_employees = models.ManyToManyField(User, related_name='assisted_bills', blank=True, limit_choices_to={'role': 'STUDENT'})
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:

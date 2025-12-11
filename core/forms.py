@@ -34,7 +34,7 @@ class ItemForm(forms.ModelForm):
 class BillForm(forms.ModelForm):
     class Meta:
         model = Bill
-        fields = ['customer', 'outlet_name', 'payment_type', 'advance_payment', 'payment_status', 'remarks', 'delivery_date']
+        fields = ['customer', 'outlet_name', 'payment_type', 'advance_payment', 'payment_status', 'remarks', 'delivery_date', 'student_employees']
         widgets = {
             'customer': forms.Select(attrs={'class': 'form-select'}),
             'outlet_name': forms.Select(attrs={'class': 'form-select'}),
@@ -43,6 +43,7 @@ class BillForm(forms.ModelForm):
             'payment_status': forms.Select(attrs={'class': 'form-select'}),
             'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'delivery_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'student_employees': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
         }
 
 class BillItemForm(forms.ModelForm):

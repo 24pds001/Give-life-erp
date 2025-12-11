@@ -318,6 +318,17 @@ def create_bill(request, bill_type):
                 form.add_error('delivery_date', f"Delivery Date is required for {type_label} Bills.")
                 valid = False
                 
+        # Specific validation for Sales Bill (Mobile Shop)
+        if bill_type == 'SALES':
+            outlet = form.cleaned_data.get('outlet_name')
+            if not outlet:
+                 form.add_error('outlet_name', "Outlet is required for Sales bills.")
+                 valid = False
+            elif outlet in ['MOBILE_1', 'MOBILE_2', 'MOBILE_3']:
+                if not form.cleaned_data.get('student_employees'):
+                    form.add_error('student_employees', "Please select at least one student employee.")
+                    valid = False
+                
         if valid:
             # 1. Aggregate items first to check if we have any valid items
             aggregated = {}
@@ -370,6 +381,7 @@ def create_bill(request, bill_type):
             bill.bill_type = bill_type
             bill.created_by = request.user
             bill.save()
+            form.save_m2m() # Save student_employees relation
             
             total = Decimal('0')
             for v in aggregated.values():
@@ -551,6 +563,17 @@ def edit_bill(request, pk):
                 form.add_error('delivery_date', f"Delivery Date is required for {type_label} Bills.")
                 valid = False
 
+        # Specific validation for Sales Bill (Mobile Shop)
+        if bill.bill_type == 'SALES':
+            outlet = form.cleaned_data.get('outlet_name')
+            if not outlet:
+                 form.add_error('outlet_name', "Outlet is required for Sales bills.")
+                 valid = False
+            elif outlet in ['MOBILE_1', 'MOBILE_2', 'MOBILE_3']:
+                if not form.cleaned_data.get('student_employees'):
+                    form.add_error('student_employees', "Please select at least one student employee.")
+                    valid = False
+
         if valid:
             # 1. Aggregate items first
             aggregated = {}
@@ -600,6 +623,7 @@ def edit_bill(request, pk):
             # 3. Save Bill and Items
             bill = form.save(commit=False)
             bill.save()
+            form.save_m2m() # Save student_employees relation
             
             # remove existing items and recreate grouped ones
             bill.items.all().delete()

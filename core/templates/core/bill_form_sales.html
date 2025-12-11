@@ -38,6 +38,20 @@
                             <div class="text-danger small">{{ form.outlet_name.errors|striptags }}</div>
                         {% endif %}
                     </div>
+                    <div class="col-md-6 field-students" id="student-employees-container" style="display: none;">
+                        <label class="form-label fw-medium">Student Employees (Min 1)</label>
+                        <style>
+                            .student-list ul { list-style-type: none; padding-left: 0; margin-bottom: 0; }
+                            .student-list li { margin-bottom: 5px; }
+                            .student-list label { margin-left: 8px; cursor: pointer; }
+                        </style>
+                        <div class="border rounded p-3 bg-white student-list" style="max-height: 200px; overflow-y: auto;">
+                            {{ form.student_employees }}
+                        </div>
+                        {% if form.student_employees.errors %}
+                            <div class="text-danger small mt-1 fw-bold">{{ form.student_employees.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -301,9 +315,13 @@
         let errors = [];
 
         // 1. Validate Outlet (Sales Bill)
-        const outlet = document.getElementById('id_outlet_name');
         if (outlet && !outlet.value) {
             errors.push("Outlet is required for Sales bills.");
+        } else if (outlet && ['MOBILE_1', 'MOBILE_2', 'MOBILE_3'].includes(outlet.value)) {
+            const students = document.querySelectorAll('input[name="student_employees"]:checked');
+            if (students.length === 0) {
+                errors.push("Please select at least one student employee for Mobile Shop sales.");
+            }
         }
 
         // 2. Validate Items and Quantity
@@ -349,11 +367,17 @@
             statusField.addEventListener('change', togglePaymentType);
             togglePaymentType();
         }
+        
+        const outletField = document.getElementById('id_outlet_name');
+        if (outletField) {
+            outletField.addEventListener('change', toggleStudentEmployees);
+            toggleStudentEmployees();
+        }
 
         const formFields = document.querySelectorAll('.card-body .row input, .card-body .row select, .card-body .row textarea');
         formFields.forEach(field => {
             if (field.tagName === 'SELECT') field.classList.add('form-select');
-            else field.classList.add('form-control');
+            else if (field.type !== 'checkbox') field.classList.add('form-control');
         });
 
         document.querySelectorAll('#items-table tbody tr.item-row').forEach(row => {
@@ -364,5 +388,19 @@
         });
         recalcGrandTotal();
     });
+    
+    function toggleStudentEmployees() {
+        const outletField = document.getElementById('id_outlet_name');
+        const studentContainer = document.getElementById('student-employees-container');
+        
+        if (!outletField || !studentContainer) return;
+
+        const val = outletField.value;
+        if (['MOBILE_1', 'MOBILE_2', 'MOBILE_3'].includes(val)) {
+            studentContainer.style.display = 'block';
+        } else {
+            studentContainer.style.display = 'none';
+        }
+    }
 </script>
 {% endblock %}
