@@ -15,23 +15,45 @@
 
     <form method="post">
         {% csrf_token %}
+        
+        <input type="hidden" name="advance_payment" value="0">
+
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-light py-3">
                 <h6 class="mb-0 fw-bold text-uppercase small text-muted">Bill Details</h6>
             </div>
             <div class="card-body p-4">
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mb-3">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
                 <div class="row g-4">
                     <div class="col-md-6 field-customer">
                         <label class="form-label fw-medium">Customer</label>
                         {{ form.customer }}
+                        {% if form.customer.errors %}
+                            <div class="text-danger small">{{ form.customer.errors|striptags }}</div>
+                        {% endif %}
                     </div>
                     <div class="col-md-6 field-delivery">
                         <label class="form-label fw-medium">Delivery Date</label>
                         {{ form.delivery_date }}
+                        {% if form.delivery_date.errors %}
+                            <div class="text-danger small">{{ form.delivery_date.errors|striptags }}</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
+
+        {% if formset.non_form_errors %}
+        <div class="alert alert-danger">
+            {{ formset.non_form_errors }}
+        </div>
+        {% endif %}
 
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
@@ -57,10 +79,30 @@
                             {{ formset.management_form }}
                             {% for subform in formset %}
                             <tr class="item-row">
-                                <td>{{ subform.item }}</td>
-                                <td>{{ subform.custom_item_name }}</td>
-                                <td>{{ subform.quantity }}</td>
-                                <td class="price-input-cell">{{ subform.price }}</td>
+                                <td>
+                                    {{ subform.item }}
+                                    {% if subform.item.errors %}
+                                        <div class="text-danger small">{{ subform.item.errors|striptags }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ subform.custom_item_name }}
+                                    {% if subform.custom_item_name.errors %}
+                                        <div class="text-danger small">{{ subform.custom_item_name.errors|striptags }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ subform.quantity }}
+                                    {% if subform.quantity.errors %}
+                                        <div class="text-danger small">{{ subform.quantity.errors|striptags }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="price-input-cell">
+                                    {{ subform.price }}
+                                    {% if subform.price.errors %}
+                                        <div class="text-danger small">{{ subform.price.errors|striptags }}</div>
+                                    {% endif %}
+                                </td>
                                 <td class="text-end fw-bold row-total">0.00</td>
                                 <td class="text-center">
                                     <button type="button" class="btn btn-sm btn-outline-danger delete-btn" title="Remove Item">
@@ -110,14 +152,23 @@
                     <div class="col-md-6">
                         <label class="form-label fw-medium">Payment Status</label>
                         {{ form.payment_status }}
+                         {% if form.payment_status.errors %}
+                            <div class="text-danger small">{{ form.payment_status.errors|striptags }}</div>
+                        {% endif %}
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-medium">Payment Type</label>
                         {{ form.payment_type }}
+                         {% if form.payment_type.errors %}
+                            <div class="text-danger small">{{ form.payment_type.errors|striptags }}</div>
+                        {% endif %}
                     </div>
                     <div class="col-md-8">
                         <label class="form-label fw-medium">Remarks</label>
                         {{ form.remarks }}
+                         {% if form.remarks.errors %}
+                            <div class="text-danger small">{{ form.remarks.errors|striptags }}</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>

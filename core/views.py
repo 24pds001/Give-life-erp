@@ -332,7 +332,9 @@ def create_bill(request, bill_type):
             
             # 2. Check if empty
             if not aggregated:
-                messages.error(request, "Cannot generate a bill with no items. Please add at least one item.")
+                # messages.error(request, "Cannot generate a bill with no items. Please add at least one item.")
+                form.add_error(None, "Cannot generate a bill with no items. Please add at least one item.")
+                
                 items = Item.objects.all()
                 items_mapping = {item.id: str(item.price) for item in items}
                 if bill_type == 'INNER':
