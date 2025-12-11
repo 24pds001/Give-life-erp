@@ -68,18 +68,17 @@
                     <label class="form-label">Bill Type</label>
                     <select name="bill_type" class="form-select">
                         <option value="">All Types</option>
-                        <option value="INNER" {% if filter_bill_type=='INNER' %}selected{% endif %}>Inner Bill
-                        </option>
-                        <option value="OUTER" {% if filter_bill_type=='OUTER' %}selected{% endif %}>Outer Bill</option>
-                        <option value="SALES" {% if filter_bill_type=='SALES' %}selected{% endif %}>Sales Bill</option>
+                        <option value="INNER" {% if filter_bill_type == 'INNER' %}selected{% endif %}>Inner Bill</option>
+                        <option value="OUTER" {% if filter_bill_type == 'OUTER' %}selected{% endif %}>Outer Bill</option>
+                        <option value="SALES" {% if filter_bill_type == 'SALES' %}selected{% endif %}>Sales Bill</option>
                     </select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Status</label>
                     <select name="payment_status" class="form-select">
                         <option value="">All Statuses</option>
-                        <option value="PAID" {% if filter_payment_status=='PAID' %}selected{% endif %}>Paid</option>
-                        <option value="PENDING" {% if filter_payment_status=='PENDING' %}selected{% endif %}>Pending
+                        <option value="PAID" {% if filter_payment_status == 'PAID' %}selected{% endif %}>Paid</option>
+                        <option value="PENDING" {% if filter_payment_status == 'PENDING' %}selected{% endif %}>Pending
                         </option>
                     </select>
                 </div>
@@ -122,8 +121,7 @@
                     {% for bill in bills %}
                     <tr>
                         <td>{{ bill.invoice_number }}</td>
-                        <td>{{ bill.created_at|date:"d M Y" }} <small class="text-muted">{{
-                                bill.created_at|date:"H:i"}}</small></td>
+                        <td>{{ bill.created_at|date:"d M Y" }} <small class="text-muted">{{bill.created_at|date:"H:i"}}</small></td>
                         <td>
                             {% if bill.bill_type == 'INNER' %}<span class="badge bg-primary">Inner</span>
                             {% elif bill.bill_type == 'OUTER' %}<span class="badge bg-success">Outer</span>
