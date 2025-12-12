@@ -362,6 +362,22 @@
             errors.push("Grand Total must be greater than 0.");
         }
 
+        // 4. Validate Advance Payment (Outer Bills)
+        const paymentStatus = document.getElementById('id_payment_status');
+        const advanceInput = document.getElementById('id_advance_payment');
+        
+        if (paymentStatus && paymentStatus.value === 'PENDING' && advanceInput) {
+             const advance = parseFloat(advanceInput.value) || 0;
+             const totalText = document.getElementById('grand-total').textContent.replace('₹ ', '');
+             const grandTotal = parseFloat(totalText) || 0;
+
+             if (advance < 0) {
+                 errors.push("Advance payment cannot be negative.");
+             } else if (advance >= grandTotal && grandTotal > 0) {
+                 errors.push("Advance payment must be less than Total Amount for pending bills. Please mark as PAID or reduce advance amount.");
+             }
+        }
+        
         if (errors.length > 0) {
             e.preventDefault();
             alert(errors.join('\n'));

@@ -411,9 +411,26 @@
             errors.push("Grand Total must be greater than 0.");
         }
 
-        // 4. Validate Split Payment (only if Paid)
+        // 4. Validate Total Paid (Strict Enforcement for Sales Bill ONLY if PAID)
+
+        // 4a. Validate Positive Payments (Apply Always)
+        document.querySelectorAll('.payment-row').forEach(row => {
+            if (row.closest('#empty-payment-form') || row.style.display === 'none') return;
+            const deleteInput = row.querySelector('input[name$="-DELETE"]');
+            if (deleteInput && deleteInput.checked) return;
+
+            const amountInput = row.querySelector('input[name$="-amount"]');
+            if (amountInput) {
+                const amt = parseFloat(amountInput.value) || 0;
+                if (amt <= 0) {
+                    errors.push("Payment amount must be greater than 0.");
+                }
+            }
+        });
+
         const statusField = document.getElementById('id_payment_status');
         if (statusField && statusField.value === 'PAID') {
+            // Checks strictly if total paid matches grand total
             let totalPaid = 0;
             document.querySelectorAll('.payment-row').forEach(row => {
                 // Ignore empty template and deleted rows
@@ -431,9 +448,9 @@
                  }
             });
 
-            // Allow small float difference
+            // Strict Check: Amount paid must be within 0.5 of grand total
             if (Math.abs(totalPaid - grandTotal) > 0.5) {
-                errors.push(`Total Paid (₹${totalPaid.toFixed(2)}) must match Bill Total (₹${grandTotal.toFixed(2)}).`);
+                errors.push(`Total Paid (₹${totalPaid.toFixed(2)}) must match Bill Total (₹${grandTotal.toFixed(2)}) for Paid Sales Bills.`);
             }
         }
 

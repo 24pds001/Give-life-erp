@@ -24,19 +24,44 @@ class User(AbstractUser):
     def is_supervisor_or_admin(self):
         return self.role in ['ADMIN', 'SUPERVISOR']
     
-    def has_module_access(self, module_name):
+    def has_module_access(self, module_name, action=None):
         if self.role == 'ADMIN':
             return True
+            
+        # 1. Check User-specific override
+        if self.module_permissions and module_name in self.module_permissions:
+            user_perm = self.module_permissions[module_name]
+            if isinstance(user_perm, bool): # Backward compatibility or simple switch
+                 return user_perm
+            if action and isinstance(user_perm, dict):
+                return user_perm.get(action, False)
+            return True # Fallback if just present? Or should strict check? 
+            # If we move to granular, we expect dict. 
+            # If it's a legacy simple 'billing': True, then it implies full access or at least 'view'.
+            # Let's assume True means full access for now to be safe, or just return True.
+
+        # 2. Check Role-based permissions
+        try:
+            role_perm = RolePermission.objects.get(role=self.role)
+            perms = role_perm.permissions.get(module_name, {})
+            if action:
+                return perms.get(action, False)
+            # If no action specified, check if they have 'view' or any access
+            return perms.get('view', False) or any(perms.values())
+        except RolePermission.DoesNotExist:
+            # Fallback to hardcoded defaults for safety during migration
+             return self._get_legacy_permission(module_name)
+
+    def _get_legacy_permission(self, module_name):
         # Default permissions based on role if not explicitly set
-        if not self.module_permissions:
-            if self.role == 'SUPERVISOR':
-                return True 
-            if self.role == 'ACCOUNTANT' and module_name in ['billing', 'invoices', 'payroll', 'vendor_payments', 'purchases', 'worklogs', 'attendance']:
-                return True
-            if self.role == 'EMPLOYEE' and module_name in ['billing', 'invoices']:
-                 pass
-        
-        return self.module_permissions.get(module_name, False)
+        if self.role == 'SUPERVISOR':
+            return True 
+        if self.role == 'ACCOUNTANT' and module_name in ['billing', 'invoices', 'payroll', 'vendor_payments', 'purchases', 'worklogs', 'attendance']:
+            return True
+        if self.role == 'EMPLOYEE' and module_name in ['billing', 'invoices']:
+             pass # Logic was pass? implies False default return at end.
+             return True
+        return False
 
     def save(self, *args, **kwargs):
         # Ensure users with ADMIN or SUPERVISOR roles have admin site access
@@ -47,6 +72,21 @@ class User(AbstractUser):
             if not self.is_superuser:
                 self.is_staff = False
         super().save(*args, **kwargs)
+
+class RolePermission(models.Model):
+    role = models.CharField(max_length=20, choices=User.ROLE_CHOICES, unique=True)
+    permissions = models.JSONField(default=dict, blank=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.get_role_display()
+
+    @staticmethod
+    def get_default_permissions():
+        # Schema: { 'module': { 'action': boolean } }
+        # Actions: view, create, edit, delete, approve
+        modules = ['users', 'items', 'customers', 'sales_bill', 'outer_bill', 'inner_bill', 'inventory', 'vendors', 'employees', 'attendance', 'worklogs', 'purchases', 'vendor_payments', 'payroll', 'reports']
+        return {m: {'view': False, 'create': False, 'edit': False, 'delete': False, 'approve': False} for m in modules}
 
 class ActivityLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

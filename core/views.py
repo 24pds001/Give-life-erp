@@ -3,8 +3,8 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.db.models import Sum, Q
 from django.utils import timezone
-from .models import User, Item, Bill, BillItem, InventoryLog, Customer, Vendor, Attendance, StudentWorkLog, PurchaseRecord, VendorPayment
-from .forms import CustomUserCreationForm, BillForm, BillItemFormSet, ItemForm, InventoryLogForm, CustomerForm, VendorForm, AttendanceForm, StudentWorkLogForm, PurchaseRecordForm, VendorPaymentForm, UserPermissionsForm, BillPaymentFormSet
+from .models import User, Item, Bill, BillItem, InventoryLog, Customer, Vendor, Attendance, StudentWorkLog, PurchaseRecord, VendorPayment, RolePermission
+from .forms import CustomUserCreationForm, BillForm, BillItemFormSet, ItemForm, InventoryLogForm, CustomerForm, VendorForm, AttendanceForm, StudentWorkLogForm, PurchaseRecordForm, VendorPaymentForm, RolePermissionForm, BillPaymentFormSet
 import json
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
@@ -76,24 +76,73 @@ def create_user(request):
         form = CustomUserCreationForm()
     return render(request, 'core/form_generic.html', {'form': form, 'title': 'Create User'})
 
+from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, BillPayment, Attendance, StudentWorkLog, PurchaseRecord, PurchaseItem, VendorPayment, ActivityLog, RolePermission
+from .forms import (
+    CustomUserCreationForm, BillForm, BillItemFormSet, InventoryLogForm, ItemForm, 
+    CustomerForm, VendorForm, BillPaymentFormSet, AttendanceForm, StudentWorkLogForm,
+    PurchaseRecordForm, VendorPaymentForm, RolePermissionForm
+)
+# ... checks ...
+
 @login_required
-@user_passes_test(lambda u: check_permission(u, 'user_management'))
+@user_passes_test(lambda u: u.role == 'ADMIN')
 def manage_user_permissions(request, pk):
     user_to_edit = get_object_or_404(User, pk=pk)
     if request.method == 'POST':
-        form = UserPermissionsForm(request.POST)
+        form = RolePermissionForm(request.POST, initial_permissions={}) # Initial not strictly needed for POST but good practice?
         if form.is_valid():
-            permissions = {}
-            for field in form.fields:
-                permissions[field] = form.cleaned_data.get(field, False)
-            user_to_edit.module_permissions = permissions
+            user_to_edit.module_permissions = form.get_cleaned_permissions()
             user_to_edit.save()
             messages.success(request, f"Permissions updated for {user_to_edit.username}")
             return redirect('user_list')
     else:
-        form = UserPermissionsForm(initial_permissions=user_to_edit.module_permissions)
+        form = RolePermissionForm(initial_permissions=user_to_edit.module_permissions)
     
-    return render(request, 'core/user_permissions.html', {'form': form, 'user_to_edit': user_to_edit})
+    return render(request, 'core/user_permissions.html', {'form': form, 'user_to_edit': user_to_edit, 'title': 'Manage User Permissions'})
+
+@login_required
+@user_passes_test(lambda u: u.role == 'ADMIN')
+def role_list(request):
+    roles = []
+    for code, name in User.ROLE_CHOICES:
+        perm_count = 0
+        try:
+             rp = RolePermission.objects.get(role=code)
+             # rough count of enabled actions
+             for mod in rp.permissions:
+                 perm_count += sum(1 for v in rp.permissions[mod].values() if v)
+        except RolePermission.DoesNotExist:
+             pass
+        roles.append({'code': code, 'name': name, 'perm_count': perm_count})
+        
+    return render(request, 'core/role_list.html', {'roles': roles})
+
+@login_required
+@user_passes_test(lambda u: u.role == 'ADMIN')
+def edit_role_permissions(request, role_code):
+    # Ensure role_code is valid
+    valid_roles = [c for c, n in User.ROLE_CHOICES]
+    if role_code not in valid_roles:
+        messages.error(request, "Invalid Role")
+        return redirect('role_list')
+        
+    role_perm, created = RolePermission.objects.get_or_create(role=role_code)
+    
+    if request.method == 'POST':
+        form = RolePermissionForm(request.POST)
+        if form.is_valid():
+            role_perm.permissions = form.get_cleaned_permissions()
+            role_perm.save()
+            messages.success(request, f"Permissions updated for role {role_perm.get_role_display()}")
+            return redirect('role_list')
+    else:
+        form = RolePermissionForm(initial_permissions=role_perm.permissions)
+        
+    return render(request, 'core/role_permissions_form.html', {
+        'form': form, 
+        'role_name': role_perm.get_role_display(),
+        'role_code': role_code
+    })
 
 @login_required
 def profile(request):
@@ -379,10 +428,101 @@ def create_bill(request, bill_type):
                 return render(request, template_name, {
                     'form': form,
                     'formset': formset,
+                    'payment_formset': payment_formset, # ensure this is passed
                     'bill_type': bill_type,
                     'items': items,
                     'items_json': json.dumps(items_mapping)
                 })
+
+            # 2.5 Validation: Total Paid must match Grand Total for SALES bills (Only if PAID)
+            if bill_type == 'SALES':
+                # Check status
+                payment_status = form.cleaned_data.get('payment_status')
+                
+                if payment_status == 'PAID':
+                    # Calculate Grand Total
+                    grand_total = Decimal('0')
+                    for v in aggregated.values():
+                        grand_total += v['price'] * v['quantity']
+                    
+                    # Calculate Total Paid
+                    total_paid = Decimal('0')
+                    if payment_formset:
+                        for p_form in payment_formset:
+                            if p_form.cleaned_data and not p_form.cleaned_data.get('DELETE'):
+                                 amount = p_form.cleaned_data.get('amount') or Decimal('0')
+                                 if amount <= 0:
+                                     p_form.add_error('amount', "Payment amount must be greater than 0.")
+                                     items = Item.objects.all()
+                                     items_mapping = {item.id: str(item.price) for item in items}
+                                     return render(request, template_name, {
+                                        'form': form,
+                                        'formset': formset,
+                                        'payment_formset': payment_formset,
+                                        'bill_type': bill_type,
+                                        'items': items,
+                                        'items_json': json.dumps(items_mapping)
+                                     })
+                                 total_paid += amount
+                    
+                    if abs(total_paid - grand_total) > Decimal('0.5'):
+                        form.add_error(None, f"Total Paid ({total_paid}) must match Grand Total ({grand_total}) for Paid Sales Bills.")
+                        
+                        items = Item.objects.all()
+                        items_mapping = {item.id: str(item.price) for item in items}
+                        return render(request, template_name, {
+                            'form': form,
+                            'formset': formset,
+                            'payment_formset': payment_formset,
+                            'bill_type': bill_type,
+                            'items': items,
+                            'items_json': json.dumps(items_mapping)
+                        })
+
+                        return render(request, template_name, {
+                            'form': form,
+                            'formset': formset,
+                            'payment_formset': payment_formset,
+                            'bill_type': bill_type,
+                            'items': items,
+                            'items_json': json.dumps(items_mapping)
+                        })
+
+            # 2.6 Validation: Advance Payment for OUTER bills
+            if bill_type == 'OUTER':
+                payment_status = form.cleaned_data.get('payment_status')
+                advance_payment = form.cleaned_data.get('advance_payment') or Decimal('0')
+                
+                # Calculate Grand Total (Reuse logic or recalculate)
+                grand_total = Decimal('0')
+                for v in aggregated.values():
+                    grand_total += v['price'] * v['quantity']
+                
+                if payment_status == 'PENDING':
+                    if advance_payment < 0:
+                         form.add_error('advance_payment', "Advance payment cannot be negative.")
+                         items = Item.objects.all()
+                         items_mapping = {item.id: str(item.price) for item in items}
+                         return render(request, template_name, {
+                            'form': form,
+                            'formset': formset,
+                            'payment_formset': payment_formset,
+                            'bill_type': bill_type,
+                            'items': items,
+                            'items_json': json.dumps(items_mapping)
+                        })
+                    elif advance_payment >= grand_total:
+                         form.add_error('advance_payment', "Advance payment must be less than Total Amount for pending bills. Please mark as PAID or reduce advance amount.")
+                         items = Item.objects.all()
+                         items_mapping = {item.id: str(item.price) for item in items}
+                         return render(request, template_name, {
+                            'form': form,
+                            'formset': formset,
+                            'payment_formset': payment_formset,
+                            'bill_type': bill_type,
+                            'items': items,
+                            'items_json': json.dumps(items_mapping)
+                        })
 
             # 3. Save Bill and Items
             bill = form.save(commit=False)
@@ -635,11 +775,56 @@ def edit_bill(request, pk):
                 return render(request, template_name, {
                     'form': form,
                     'formset': formset,
+                    'payment_formset': payment_formset, # ensure this is passed (not present in original but seems fine to pass)
                     'bill_type': bill.bill_type,
                     'items': items,
                     'items_json': json.dumps(items_mapping),
                     'editing': True,
                 })
+
+            # 2.5 Validation: Total Paid must match Grand Total for SALES bills (Only if PAID)
+            if bill.bill_type == 'SALES':
+                payment_status = form.cleaned_data.get('payment_status')
+                if payment_status == 'PAID':
+                    grand_total = Decimal('0')
+                    for v in aggregated.values():
+                        grand_total += v['price'] * v['quantity']
+                    
+                    total_paid = Decimal('0')
+                    if payment_formset:
+                        for p_form in payment_formset:
+                            if p_form.cleaned_data and not p_form.cleaned_data.get('DELETE'):
+                                 amount = p_form.cleaned_data.get('amount') or Decimal('0')
+                                 if amount <= 0:
+                                     p_form.add_error('amount', "Payment amount must be greater than 0.")
+                                     # Force re-render if invalid
+                                     items = Item.objects.all()
+                                     items_mapping = {item.id: str(item.price) for item in items}
+                                     return render(request, template_name, {
+                                        'form': form,
+                                        'formset': formset,
+                                        'payment_formset': payment_formset,
+                                        'bill_type': bill.bill_type,
+                                        'items': items,
+                                        'items_json': json.dumps(items_mapping),
+                                        'editing': True,
+                                    })
+                                 total_paid += amount
+
+                    if abs(total_paid - grand_total) > Decimal('0.5'):
+                        form.add_error(None, f"Total Paid ({total_paid}) must match Grand Total ({grand_total}) for Paid Sales Bills.")
+                        
+                        items = Item.objects.all()
+                        items_mapping = {item.id: str(item.price) for item in items}
+                        return render(request, template_name, {
+                            'form': form,
+                            'formset': formset,
+                            'payment_formset': payment_formset,
+                            'bill_type': bill.bill_type,
+                            'items': items,
+                            'items_json': json.dumps(items_mapping),
+                            'editing': True,
+                        })
 
             # 3. Save Bill and Items
             bill = form.save(commit=False)

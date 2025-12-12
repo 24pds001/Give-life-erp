@@ -8,23 +8,59 @@ class CustomUserCreationForm(UserCreationForm):
         model = User
         fields = ('username', 'role', 'emp_id', 'emp_type', 'contact_number')
 
-class UserPermissionsForm(forms.Form):
-    user_management = forms.BooleanField(required=False, label="User Management")
-    inventory = forms.BooleanField(required=False, label="Inventory & Tracking")
-    billing = forms.BooleanField(required=False, label="Billing & Invoices")
-    customers = forms.BooleanField(required=False, label="Customer Management")
-    vendors = forms.BooleanField(required=False, label="Vendor Management")
-    employees = forms.BooleanField(required=False, label="Employee Management")
-    attendance = forms.BooleanField(required=False, label="Attendance")
-    worklogs = forms.BooleanField(required=False, label="Work Logs")
-    purchases = forms.BooleanField(required=False, label="Purchases")
-    reports = forms.BooleanField(required=False, label="Reports & Payroll")
-
+class RolePermissionForm(forms.Form):
+    # Dynamically generated fields based on RolePermission.get_default_permissions()
     def __init__(self, *args, **kwargs):
-        user_permissions = kwargs.pop('initial_permissions', {})
+        initial_data = kwargs.pop('initial_permissions', {})
         super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].initial = user_permissions.get(field, False)
+        
+        from .models import RolePermission
+        default_perms = RolePermission.get_default_permissions()
+        
+        # We start with defaults and merge initial data
+        # Structure: {module: {action: bool}}
+        
+        self.modules = list(default_perms.keys())
+        self.actions = ['view', 'create', 'edit', 'delete', 'approve'] # Standard actions
+        
+        for module in self.modules:
+            for action in self.actions:
+                field_name = f"{module}_{action}"
+                initial_val = False
+                if module in initial_data and action in initial_data[module]:
+                    initial_val = initial_data[module][action]
+                elif module in default_perms and action in default_perms[module]:
+                     # Fallback to default schema existence check, though values are False usually
+                     pass
+
+                self.fields[field_name] = forms.BooleanField(
+                    required=False, 
+                    initial=initial_val,
+                    widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+                )
+
+    def get_cleaned_permissions(self):
+        cleaned_perms = {}
+        from .models import RolePermission
+        default_perms = RolePermission.get_default_permissions()
+        
+        for module in default_perms:
+            cleaned_perms[module] = {}
+            for action in ['view', 'create', 'edit', 'delete', 'approve']:
+                field_name = f"{module}_{action}"
+                if field_name in self.cleaned_data:
+                    cleaned_perms[module][action] = self.cleaned_data[field_name]
+        return cleaned_perms
+
+    def get_grid(self):
+        # yields (module, [(action, field_bound), ...])
+        # This helps templates render a nice grid
+        for module in self.modules:
+            row = []
+            for action in self.actions:
+                name = f"{module}_{action}"
+                row.append((action, self[name]))
+            yield (module.replace('_', ' ').title(), row)
 
 class ItemForm(forms.ModelForm):
     class Meta:
