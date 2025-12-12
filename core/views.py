@@ -571,12 +571,29 @@ def create_bill(request, bill_type):
     })
 
 @login_required
-@user_passes_test(lambda u: check_permission(u, 'billing'))
 def bill_detail(request, pk):
     bill = get_object_or_404(Bill, pk=pk)
-    if not (request.user.is_supervisor_or_admin() or bill.created_by == request.user or request.user.has_module_access('billing')):
+    
+    # Check permission
+    can_view = False
+    if request.user.role in ['ADMIN', 'SUPERVISOR', 'ACCOUNTANT']:
+        can_view = True
+    elif bill.created_by == request.user:
+        can_view = True
+    elif request.user.has_module_access('billing'):
+        can_view = True
+    # Detailed check based on bill type
+    elif request.user.has_module_access('sales_bill') and bill.bill_type == 'SALES':
+        can_view = True
+    elif request.user.has_module_access('outer_bill') and bill.bill_type == 'OUTER':
+        can_view = True
+    elif request.user.has_module_access('inner_bill') and bill.bill_type == 'INNER':
+        can_view = True
+        
+    if not can_view:
          messages.error(request, "Unauthorized to view this bill")
          return redirect('dashboard')
+         
     return render(request, 'core/bill_print.html', {'bill': bill})
 
 @login_required

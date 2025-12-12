@@ -1,5 +1,6 @@
 {% extends 'core/base.html' %}
 {% load static %}
+{% load permission_tags %}
 
 {% block title %}Invoice {{ bill.invoice_number }}{% endblock %}
 
@@ -134,6 +135,14 @@
         <button onclick="window.print()" class="btn btn-primary btn-lg px-5">
             <i class="bi bi-printer me-2"></i>Print Invoice
         </button>
+        
+        {% has_bill_permission user bill 'edit' as can_edit %}
+        {% if can_edit %}
+        <a href="{% url 'edit_bill' bill.id %}" class="btn btn-warning btn-lg px-4 ms-2">
+            <i class="bi bi-pencil me-2"></i>Modify Invoice
+        </a>
+        {% endif %}
+        
         <a href="{% url 'billing_home' %}" class="btn btn-light border btn-lg px-4 ms-2">Back</a>
     </div>
 </div>
