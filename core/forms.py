@@ -1,7 +1,8 @@
 from django import forms
+# Force reload
 from django.forms import inlineformset_factory
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, Attendance, StudentWorkLog, PurchaseRecord, VendorPayment, BillPayment, InventorySession, InventorySessionItem
+from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, Attendance, StudentWorkLog, PurchaseRecord, VendorPayment, BillPayment, InventorySession, InventorySessionItem, InventorySessionPayment
 
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
@@ -127,10 +128,27 @@ class InventoryLogForm(forms.ModelForm):
 class InventorySessionForm(forms.ModelForm):
     class Meta:
         model = InventorySession
-        fields = ['outlet_name']
+        fields = ['outlet_name', 'student_employees', 'payment_status']
         widgets = {
             'outlet_name': forms.Select(attrs={'class': 'form-select'}),
+            'student_employees': forms.SelectMultiple(attrs={'class': 'form-select', 'id': 'id_student_employees'}),
+            'payment_status': forms.Select(attrs={'class': 'form-select'}),
         }
+
+class InventorySessionPaymentForm(forms.ModelForm):
+    class Meta:
+        model = InventorySessionPayment
+        fields = ['payment_type', 'amount', 'reference_number']
+        widgets = {
+            'payment_type': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'Amount'}),
+            'reference_number': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'Ref No.'}),
+        }
+
+InventorySessionPaymentFormSet = inlineformset_factory(
+    InventorySession, InventorySessionPayment, form=InventorySessionPaymentForm,
+    extra=0, can_delete=True
+)
 
 class InventorySessionItemForm(forms.ModelForm):
     class Meta:

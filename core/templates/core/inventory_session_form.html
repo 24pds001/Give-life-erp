@@ -1,6 +1,11 @@
 {% extends 'core/base.html' %}
 {% block title %}{{ title }}{% endblock %}
 
+{% block css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid p-0">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -25,15 +30,44 @@
 
     <form method="post">
         {% csrf_token %}
+        <!-- Session Actions & Meta -->
+        
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-light py-3">
                 <h6 class="mb-0 fw-bold text-uppercase small text-muted">Session Details</h6>
             </div>
             <div class="card-body p-4">
+                 {% if form.non_field_errors %}
+                <div class="alert alert-danger mb-3">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
                 <div class="row g-4">
                     <div class="col-md-6">
                         <label class="form-label fw-medium">Outlet</label>
                         {{ form.outlet_name }}
+                         {% if form.outlet_name.errors %}
+                            <div class="text-danger small">{{ form.outlet_name.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                     <div class="col-md-6 field-students" id="student-employees-container" style="display: none;">
+                        <label class="form-label fw-medium">Student Employees (Min 1)</label>
+                        {{ form.student_employees }}
+                        {% if form.student_employees.errors %}
+                            <div class="text-danger small mt-1 fw-bold">{{ form.student_employees.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                 <div class="row g-4 mt-2">
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium">Overall Payment Status</label>
+                        {{ form.payment_status }}
+                         {% if form.payment_status.errors %}
+                            <div class="text-danger small">{{ form.payment_status.errors|striptags }}</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -63,7 +97,14 @@
                             <tr class="item-row">
                                 <td>{{ subform.item }}</td>
                                 <td>{{ subform.quantity_taken }}</td>
-                                <td>{{ subform.quantity_returned }}</td>
+                                <td>
+                                    {{ subform.quantity_returned }}
+                                    {% if subform.instance.pk %}
+                                       {% if subform.instance.quantity_returned > subform.instance.quantity_taken %}
+                                            <div class="text-danger small">Error: > Taken</div>
+                                       {% endif %}
+                                    {% endif %}
+                                </td>
                                 <td class="text-center">
                                     <button type="button" class="btn btn-sm btn-outline-danger delete-btn">
                                         <i class="bi bi-trash"></i>
@@ -93,6 +134,89 @@
             </div>
         </div>
 
+        {% if payment_formset %}
+         <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-uppercase small text-muted">Payment Details</h6>
+                 <button type="button" class="btn btn-sm btn-success" id="add-payment-row">
+                    <i class="bi bi-plus-lg me-1"></i>Add Payment
+                </button>
+            </div>
+             <div class="card-body p-0">
+                <div class="table-responsive">
+                     <table class="table table-hover align-middle mb-0" id="payments-table">
+                        <thead class="bg-light">
+                            <tr>
+                                <th style="width: 30%;">Type</th>
+                                <th style="width: 30%;">Amount</th>
+                                <th style="width: 30%;">Ref No</th>
+                                <th style="width: 10%;"></th>
+                            </tr>
+                        </thead>
+                         <tbody>
+                            {{ payment_formset.management_form }}
+                            {% for subform in payment_formset %}
+                            <tr class="payment-row">
+                                <td>{{ subform.payment_type }}</td>
+                                <td>{{ subform.amount }}</td>
+                                <td>{{ subform.reference_number }}</td>
+                                 <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-payment-btn">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <div class="d-none">{{ subform.DELETE }}</div>
+                                </td>
+                                {% for hidden in subform.hidden_fields %}{{ hidden }}{% endfor %}
+                            </tr>
+                            {% endfor %}
+                            
+                             <!-- Empty Payment Form -->
+                            <tr id="empty-payment-row" class="payment-row" style="display:none">
+                                <td>{{ payment_formset.empty_form.payment_type }}</td>
+                                <td>{{ payment_formset.empty_form.amount }}</td>
+                                <td>{{ payment_formset.empty_form.reference_number }}</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-payment-btn">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                     <div class="d-none">{{ payment_formset.empty_form.DELETE }}</div>
+                                </td>
+                                {% for hidden in payment_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+                            </tr>
+                         </tbody>
+                     </table>
+                </div>
+             </div>
+         </div>
+        {% endif %}
+        
+        <!-- Summary & Totals -->
+        <div class="card shadow-sm border-0 mb-4 bg-light">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                         <h6 class="text-muted text-uppercase small fw-bold">Total Bill Amount</h6>
+                         <h3 class="fw-bold text-primary">₹<span id="display-bill-total">0.00</span></h3>
+                    </div>
+                    <div class="col-md-4">
+                         <h6 class="text-muted text-uppercase small fw-bold">Total Payments</h6>
+                         <h3 class="fw-bold text-success">₹<span id="display-payment-total">0.00</span></h3>
+                    </div>
+                    <div class="col-md-4">
+                         <h6 class="text-muted text-uppercase small fw-bold">Balance</h6>
+                         <h3 class="fw-bold text-danger">₹<span id="display-balance">0.00</span></h3>
+                    </div>
+                </div>
+                <div id="balance-warning" class="alert alert-warning mt-3 text-center d-none">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Using partial payments? Ensure the balance matches before closing.
+                </div>
+            </div>
+        </div>
+        
+        <!-- Validation Warning Area -->
+        <div id="validation-errors" class="alert alert-danger d-none"></div>
+
         <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-5">
              <button type="button" class="btn btn-light btn-lg border px-5 me-md-2"
                 onclick="history.back()">Cancel</button>
@@ -103,30 +227,127 @@
     </form>
 </div>
 
-<!-- Simple JS for Dynamic Formset -->
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // ... (Similar logic to bill form for adding rows) ...
+        
+        // Item Prices Map
+        const itemPrices = {{ items_json|safe }};
+
+        $('#id_student_employees').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select Student Employees',
+            allowClear: true,
+            width: '100%'
+        });
+
+        const outletField = document.getElementById('id_outlet_name');
+        function toggleStudentEmployees() {
+            const studentContainer = document.getElementById('student-employees-container');
+            if (!outletField || !studentContainer) return;
+            const val = outletField.value;
+            if (['MOBILE_1', 'MOBILE_2', 'MOBILE_3'].includes(val)) {
+                studentContainer.style.display = 'block';
+            } else {
+                studentContainer.style.display = 'none';
+            }
+        }
+        if (outletField) {
+            outletField.addEventListener('change', toggleStudentEmployees);
+            toggleStudentEmployees();
+        }
+
+        // --- Calculation Logic ---
+        function calculateTotals() {
+            let billTotal = 0;
+            let paymentTotal = 0;
+
+            // Calculate Bill Total
+            document.querySelectorAll('#items-table tbody tr.item-row').forEach(row => {
+                if (row.id !== 'empty-form-row' && row.style.display !== 'none') {
+                    const deleteInput = row.querySelector('input[name$="-DELETE"]');
+                    if (deleteInput && deleteInput.checked) return;
+
+                    const takenInput = row.querySelector('input[name$="-quantity_taken"]');
+                    const returnedInput = row.querySelector('input[name$="-quantity_returned"]');
+                    const itemSelect = row.querySelector('select[name$="-item"]');
+
+                    const taken = parseFloat(takenInput.value) || 0;
+                    const returned = parseFloat(returnedInput.value) || 0;
+                    const sold = Math.max(0, taken - returned);
+                    
+                    const itemId = itemSelect.value;
+                    const price = itemPrices[itemId] ? parseFloat(itemPrices[itemId]) : 0;
+
+                    billTotal += sold * price;
+                }
+            });
+
+            // Calculate Payment Total
+            document.querySelectorAll('#payments-table tbody tr.payment-row').forEach(row => {
+                 if (row.id !== 'empty-payment-row' && row.style.display !== 'none') {
+                    const deleteInput = row.querySelector('input[name$="-DELETE"]');
+                    if (deleteInput && deleteInput.checked) return;
+
+                    const amountInput = row.querySelector('input[name$="-amount"]');
+                    const amount = parseFloat(amountInput.value) || 0;
+                    
+                    paymentTotal += amount;
+                 }
+            });
+
+            const balance = billTotal - paymentTotal;
+
+            document.getElementById('display-bill-total').textContent = billTotal.toFixed(2);
+            document.getElementById('display-payment-total').textContent = paymentTotal.toFixed(2);
+            document.getElementById('display-balance').textContent = balance.toFixed(2);
+            
+            const warningEl = document.getElementById('balance-warning');
+            if (Math.abs(balance) > 0.01) {
+                // Determine color based on positive (due) or negative (overpaid)
+                document.getElementById('display-balance').className = balance > 0 ? 'fw-bold text-danger' : 'fw-bold text-warning';
+                warningEl.className = 'alert alert-warning mt-3 text-center'; // Show
+                warningEl.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i> Amount Mismatch! Balance: ${balance.toFixed(2)}`;
+            } else {
+                 document.getElementById('display-balance').className = 'fw-bold text-success';
+                 warningEl.className = 'alert alert-warning mt-3 text-center d-none'; // Hide
+            }
+        }
+
+        // --- Items Table Logic ---
         const addBtn = document.getElementById('add-row');
         const emptyRow = document.getElementById('empty-form-row');
         const tbody = document.querySelector('#items-table tbody');
         const totalForms = document.getElementById('id_items-TOTAL_FORMS');
 
-        addBtn.addEventListener('click', function() {
-            const idx = parseInt(totalForms.value);
-            const newRow = emptyRow.cloneNode(true);
-            newRow.id = '';
-            newRow.style.display = '';
-            newRow.innerHTML = newRow.innerHTML.replace(/__prefix__/g, idx);
-            tbody.insertBefore(newRow, emptyRow);
-            totalForms.value = idx + 1;
-            attachListeners(newRow);
-        });
+        if(addBtn) {
+            addBtn.addEventListener('click', function() {
+                const idx = parseInt(totalForms.value);
+                const newRow = emptyRow.cloneNode(true);
+                newRow.id = '';
+                newRow.style.display = '';
+                newRow.innerHTML = newRow.innerHTML.replace(/__prefix__/g, idx);
+                tbody.insertBefore(newRow, emptyRow);
+                totalForms.value = idx + 1;
+                attachListeners(newRow);
+            });
+        }
 
         function attachListeners(row) {
             const deleteBtn = row.querySelector('.delete-btn');
             const deleteInput = row.querySelector('input[name$="-DELETE"]');
             
+            // Inputs that affect calculation
+            const inputs = row.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.addEventListener('change', calculateTotals);
+                input.addEventListener('keyup', calculateTotals);
+            });
+
             if (deleteBtn) {
                 deleteBtn.addEventListener('click', function() {
                      if (deleteInput) {
@@ -135,13 +356,97 @@
                      } else {
                          row.remove();
                      }
+                     calculateTotals();
                 });
             }
         }
         
-        // Init existing
         document.querySelectorAll('.item-row').forEach(row => {
             if (row.id !== 'empty-form-row') attachListeners(row);
+        });
+
+        // --- Payment Table Logic ---
+        const addPaymentBtn = document.getElementById('add-payment-row');
+        const emptyPaymentRow = document.getElementById('empty-payment-row');
+        const paymentTbody = document.querySelector('#payments-table tbody');
+        const totalPaymentForms = document.getElementById('id_payments-TOTAL_FORMS');
+
+        if(addPaymentBtn && emptyPaymentRow) {
+            addPaymentBtn.addEventListener('click', function() {
+                const idx = parseInt(totalPaymentForms.value);
+                const newRow = emptyPaymentRow.cloneNode(true);
+                newRow.id = '';
+                newRow.style.display = '';
+                newRow.innerHTML = newRow.innerHTML.replace(/__prefix__/g, idx);
+                paymentTbody.insertBefore(newRow, emptyPaymentRow);
+                totalPaymentForms.value = idx + 1;
+                attachPaymentListeners(newRow);
+            });
+        }
+        
+        function attachPaymentListeners(row) {
+             const deleteBtn = row.querySelector('.delete-payment-btn');
+             const deleteInput = row.querySelector('input[name$="-DELETE"]');
+             
+             // Inputs that affect calculation
+            const inputs = row.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.addEventListener('change', calculateTotals);
+                input.addEventListener('keyup', calculateTotals);
+            });
+             
+             if(deleteBtn) {
+                 deleteBtn.addEventListener('click', function() {
+                     if(deleteInput) {
+                         deleteInput.checked = true;
+                         row.style.display = 'none';
+                     } else {
+                         row.remove();
+                     }
+                     calculateTotals();
+                 });
+             }
+        }
+
+        document.querySelectorAll('.payment-row').forEach(row => {
+            if (row.id !== 'empty-payment-row') attachPaymentListeners(row);
+        });
+        
+        // Initial Calculate
+        calculateTotals();
+        
+        document.querySelector('form').addEventListener('submit', function(e) {
+            let errors = [];
+            document.querySelectorAll('#items-table tbody tr.item-row').forEach(row => {
+                if (row.id !== 'empty-form-row' && row.style.display !== 'none') {
+                    const deleteInput = row.querySelector('input[name$="-DELETE"]');
+                    if (deleteInput && deleteInput.checked) return;
+                    
+                    const takenInput = row.querySelector('input[name$="-quantity_taken"]');
+                    const returnedInput = row.querySelector('input[name$="-quantity_returned"]');
+                    
+                    const taken = parseFloat(takenInput.value) || 0;
+                    const returned = parseFloat(returnedInput.value) || 0;
+                    
+                    const itemSelect = row.querySelector('select[name$="-item"]');
+                    const itemName = itemSelect.options[itemSelect.selectedIndex].text;
+
+                    if (returned > taken) {
+                        errors.push(`Item '${itemName}': Returned quantity (${returned}) cannot exceed Taken quantity (${taken}).`);
+                        returnedInput.classList.add('is-invalid');
+                    } else {
+                        returnedInput.classList.remove('is-invalid');
+                    }
+                }
+            });
+            
+            if (errors.length > 0) {
+                e.preventDefault();
+                const errDiv = document.getElementById('validation-errors');
+                errDiv.innerHTML = errors.join('<br>');
+                errDiv.classList.remove('d-none');
+                window.scrollTo(0, document.body.scrollHeight);
+            }
         });
     });
 </script>

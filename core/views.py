@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.db.models import Sum, Q
 from django.utils import timezone
 from .models import User, Item, Bill, BillItem, InventoryLog, Customer, Vendor, Attendance, StudentWorkLog, PurchaseRecord, VendorPayment, RolePermission
-from .forms import CustomUserCreationForm, BillForm, BillItemFormSet, ItemForm, InventoryLogForm, CustomerForm, VendorForm, AttendanceForm, StudentWorkLogForm, PurchaseRecordForm, VendorPaymentForm, RolePermissionForm, BillPaymentFormSet
+from .forms import CustomUserCreationForm, BillForm, BillItemFormSet, ItemForm, InventoryLogForm, CustomerForm, VendorForm, AttendanceForm, StudentWorkLogForm, PurchaseRecordForm, VendorPaymentForm, RolePermissionForm, BillPaymentFormSet, InventorySessionForm, InventorySessionItemFormSet, InventorySessionPaymentFormSet
 import json
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
@@ -182,6 +182,7 @@ def create_inventory_session(request):
     else:
         form = InventorySessionForm()
         formset = InventorySessionItemFormSet()
+        payment_formset = InventorySessionPaymentFormSet()
         
     items = Item.objects.filter(is_active=True)
     # Mapping for potential JS price/info if needed
@@ -190,6 +191,7 @@ def create_inventory_session(request):
     return render(request, 'core/inventory_session_form.html', {
         'form': form, 
         'formset': formset,
+        'payment_formset': payment_formset if 'payment_formset' in locals() else InventorySessionPaymentFormSet(),
         'title': 'Create Stock Out Session',
         'items_json': items_json
     })
@@ -205,14 +207,17 @@ def edit_inventory_session(request, pk):
     if request.method == 'POST':
         form = InventorySessionForm(request.POST, instance=session)
         formset = InventorySessionItemFormSet(request.POST, instance=session)
-        if form.is_valid() and formset.is_valid():
+        payment_formset = InventorySessionPaymentFormSet(request.POST, instance=session)
+        if form.is_valid() and formset.is_valid() and payment_formset.is_valid():
             form.save()
             formset.save()
+            payment_formset.save()
             messages.success(request, "Inventory seesion updated")
             return redirect('inventory_list')
     else:
         form = InventorySessionForm(instance=session)
         formset = InventorySessionItemFormSet(instance=session)
+        payment_formset = InventorySessionPaymentFormSet(instance=session)
         
     items = Item.objects.filter(is_active=True)
     items_json = json.dumps({item.id: str(item.price) for item in items})
@@ -220,6 +225,7 @@ def edit_inventory_session(request, pk):
     return render(request, 'core/inventory_session_form.html', {
         'form': form, 
         'formset': formset,
+        'payment_formset': payment_formset,
         'title': 'Stock Return / Update Session',
         'session': session,
         'items_json': items_json
@@ -250,23 +256,54 @@ def close_inventory_session(request, pk):
              
         if invalid:
             return redirect('edit_inventory_session', pk=pk)
+
+        # Calculate Total Amount
+        total_amount = Decimal(0)
+        for i in items:
+            sold_qty = i.quantity_sold
+            total_amount += sold_qty * i.item.price
+            
+        # Validate Payments
+        total_payments = session.payments.aggregate(Sum('amount'))['amount__sum'] or Decimal(0)
+        
+        if total_payments != total_amount:
+            messages.error(request, f"Cannot close session: Total Payments (₹{total_payments}) do not match Bill Amount (₹{total_amount}). Please update payment details.")
+            return redirect('edit_inventory_session', pk=pk)
             
         # All good, create Sales Bill
         session.status = 'CLOSED'
         session.save()
         
-        # Aggregate sold items
-        sold_items = []
-        total_amount = Decimal(0)
-        
         bill = Bill.objects.create(
             bill_type='SALES',
             created_by=request.user,
             outlet_name=session.outlet_name,
-            payment_type='CASH',
-            payment_status='PENDING',
-            remarks=f"Auto-generated from Inventory Session #{session.id}"
+            remarks=f"Generated from Inventory Session #{session.id}",
+            payment_status=session.payment_status
         )
+        # Default payment type for bill header (can be mixed)
+        if session.payments.exists():
+             bill.payment_type = session.payments.first().payment_type
+        else:
+             bill.payment_type = 'CASH' # Default if no payments recorded
+        bill.save()
+        
+        # Transfer payments
+        for p in session.payments.all():
+            BillPayment.objects.create(
+                bill=bill,
+                payment_type=p.payment_type,
+                amount=p.amount,
+                reference_number=p.reference_number
+            )
+            # Update bill status if covered?
+            # Basic logic: let bill logic handle status or leave as PENDING for accountant review
+        
+        # Add student employees
+        
+        # Add student employees
+        if session.student_employees.exists():
+            bill.student_employees.set(session.student_employees.all())
         
         for i in items:
             sold_qty = i.quantity_sold
@@ -282,10 +319,10 @@ def close_inventory_session(request, pk):
         bill.total_amount = total_amount
         bill.save()
         
-        messages.success(request, f"Session Closed. Sales Bill {bill.invoice_number} Generated.")
         return redirect('bill_detail', pk=bill.id)
         
-    return render(request, 'core/inventory_close.html', {'session': session})
+    # If GET, just go back to edit page
+    return redirect('edit_inventory_session', pk=pk)
 
 @login_required
 @user_passes_test(lambda u: check_permission(u, 'inventory'))

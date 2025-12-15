@@ -237,6 +237,10 @@ class InventorySession(models.Model):
         ('CLOSED', 'Closed'),
     )
     outlet_name = models.CharField(max_length=50, choices=Bill.OUTLET_CHOICES)
+    customer = models.ForeignKey(Customer, null=True, blank=True, on_delete=models.SET_NULL)
+    customer_name = models.CharField(max_length=200, blank=True)
+    student_employees = models.ManyToManyField(User, related_name='assisted_inventory_sessions', blank=True, limit_choices_to={'role': 'STUDENT'})
+    payment_status = models.CharField(max_length=10, choices=Bill.PAYMENT_STATUS, default='PENDING')
     created_by = models.ForeignKey(User, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='OPEN')
@@ -253,6 +257,15 @@ class InventorySessionItem(models.Model):
     @property
     def quantity_sold(self):
         return max(0, self.quantity_taken - self.quantity_returned)
+
+class InventorySessionPayment(models.Model):
+    session = models.ForeignKey(InventorySession, on_delete=models.CASCADE, related_name='payments')
+    payment_type = models.CharField(max_length=20, choices=Bill.PAYMENT_TYPE_CHOICES)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    reference_number = models.CharField(max_length=50, blank=True)
+
+    def __str__(self):
+        return f"{self.payment_type} - {self.amount}"
 
 class Attendance(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
