@@ -1,0 +1,148 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">{{ title }}</h2>
+            <p class="text-muted mb-0">{% if session %}Session #{{ session.id }} - {{ session.get_outlet_name_display }}{% else %}Start a new inventory session{% endif %}</p>
+        </div>
+        <div>
+             {% if session %}
+                 <form action="{% url 'close_inventory_session' session.pk %}" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to close this session? This will generate a Sales Bill.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success border px-3">
+                        <i class="bi bi-check-circle me-2"></i>Close Session
+                    </button>
+                 </form>
+             {% endif %}
+            <a href="{% url 'inventory_list' %}" class="btn btn-light border ms-2">
+                <i class="bi bi-arrow-left me-2"></i>Back to List
+            </a>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-light py-3">
+                <h6 class="mb-0 fw-bold text-uppercase small text-muted">Session Details</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium">Outlet</label>
+                        {{ form.outlet_name }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-uppercase small text-muted">Inventory Items</h6>
+                <button type="button" class="btn btn-sm btn-primary" id="add-row">
+                    <i class="bi bi-plus-lg me-1"></i>Add Item
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="items-table">
+                        <thead class="bg-light">
+                            <tr>
+                                <th style="width: 40%;">Item</th>
+                                <th style="width: 25%;">Qty Taken</th>
+                                <th style="width: 25%;">Qty Returned</th>
+                                <th class="text-center" style="width: 10%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ formset.management_form }}
+                            {% for subform in formset %}
+                            <tr class="item-row">
+                                <td>{{ subform.item }}</td>
+                                <td>{{ subform.quantity_taken }}</td>
+                                <td>{{ subform.quantity_returned }}</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-btn">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <div class="d-none">{{ subform.DELETE }}</div>
+                                </td>
+                                {% for hidden in subform.hidden_fields %}{{ hidden }}{% endfor %}
+                            </tr>
+                            {% endfor %}
+
+                            <!-- Empty Form -->
+                             <tr id="empty-form-row" class="item-row" style="display:none">
+                                <td>{{ formset.empty_form.item }}</td>
+                                <td>{{ formset.empty_form.quantity_taken }}</td>
+                                <td>{{ formset.empty_form.quantity_returned }}</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-btn">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <div class="d-none">{{ formset.empty_form.DELETE }}</div>
+                                </td>
+                                {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-5">
+             <button type="button" class="btn btn-light btn-lg border px-5 me-md-2"
+                onclick="history.back()">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-lg px-5">
+                <i class="bi bi-save me-2"></i>Save Session
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Simple JS for Dynamic Formset -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ... (Similar logic to bill form for adding rows) ...
+        const addBtn = document.getElementById('add-row');
+        const emptyRow = document.getElementById('empty-form-row');
+        const tbody = document.querySelector('#items-table tbody');
+        const totalForms = document.getElementById('id_items-TOTAL_FORMS');
+
+        addBtn.addEventListener('click', function() {
+            const idx = parseInt(totalForms.value);
+            const newRow = emptyRow.cloneNode(true);
+            newRow.id = '';
+            newRow.style.display = '';
+            newRow.innerHTML = newRow.innerHTML.replace(/__prefix__/g, idx);
+            tbody.insertBefore(newRow, emptyRow);
+            totalForms.value = idx + 1;
+            attachListeners(newRow);
+        });
+
+        function attachListeners(row) {
+            const deleteBtn = row.querySelector('.delete-btn');
+            const deleteInput = row.querySelector('input[name$="-DELETE"]');
+            
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', function() {
+                     if (deleteInput) {
+                         deleteInput.checked = true;
+                         row.style.display = 'none';
+                     } else {
+                         row.remove();
+                     }
+                });
+            }
+        }
+        
+        // Init existing
+        document.querySelectorAll('.item-row').forEach(row => {
+            if (row.id !== 'empty-form-row') attachListeners(row);
+        });
+    });
+</script>
+{% endblock %}

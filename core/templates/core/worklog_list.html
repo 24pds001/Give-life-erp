@@ -1,23 +1,38 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Student Work Logs</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
         {% if user.role == 'STUDENT' %}
-        <a href="{% url 'create_worklog' %}" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-plus-circle"></i> Submit Work Log
-        </a>
+            {% if current_worklog %}
+            <form action="{% url 'end_worklog' %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-danger">
+                    <i class="bi bi-stop-circle"></i> End Work (Started: {{ current_worklog.entry_time|time:"H:i" }})
+                </button>
+            </form>
+            {% else %}
+            <form action="{% url 'start_worklog' %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-success">
+                    <i class="bi bi-play-circle"></i> Start Work
+                </button>
+            </form>
+            {% endif %}
         {% endif %}
     </div>
 </div>
 
 <div class="table-responsive">
-    <table class="table table-striped table-sm">
+    <table class="table table-striped table-sm align-middle">
         <thead>
             <tr>
                 <th>Date</th>
                 <th>Student</th>
+                <th>Entry Time</th>
+                <th>Exit Time</th>
                 <th>Working Hours</th>
                 <th>Overtime</th>
                 <th>Status</th>
@@ -29,15 +44,19 @@
             <tr>
                 <td>{{ log.date }}</td>
                 <td>{{ log.student.username }}</td>
-                <td>{{ log.working_hours }}</td>
+                <td>{{ log.entry_time|default:"-" }}</td>
+                <td>{{ log.exit_time|default:"-" }}</td>
+                <td>{{ log.working_hours|default:"-" }}</td>
                 <td>{{ log.overtime_hours }}</td>
                 <td>
                     {% if log.status == 'APPROVED' %}
                     <span class="badge bg-success">Approved</span>
                     {% elif log.status == 'REJECTED' %}
                     <span class="badge bg-danger">Rejected</span>
-                    {% else %}
+                    {% elif log.status == 'PENDING' %}
                     <span class="badge bg-warning text-dark">Pending</span>
+                    {% elif log.status == 'OPEN' %}
+                    <span class="badge bg-info text-dark">Open (In Progress)</span>
                     {% endif %}
                 </td>
                 <td>
@@ -53,7 +72,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" class="text-center">No work logs found.</td>
+                <td colspan="8" class="text-center">No work logs found.</td>
             </tr>
             {% endfor %}
         </tbody>

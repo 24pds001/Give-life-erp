@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, Attendance, StudentWorkLog, PurchaseRecord, VendorPayment, BillPayment
+from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, Attendance, StudentWorkLog, PurchaseRecord, VendorPayment, BillPayment, InventorySession, InventorySessionItem
 
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
@@ -123,6 +123,29 @@ class InventoryLogForm(forms.ModelForm):
             'quantity_taken': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
+
+class InventorySessionForm(forms.ModelForm):
+    class Meta:
+        model = InventorySession
+        fields = ['outlet_name']
+        widgets = {
+            'outlet_name': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+class InventorySessionItemForm(forms.ModelForm):
+    class Meta:
+        model = InventorySessionItem
+        fields = ['item', 'quantity_taken', 'quantity_returned']
+        widgets = {
+            'item': forms.Select(attrs={'class': 'form-select product-select'}),
+            'quantity_taken': forms.NumberInput(attrs={'class': 'form-control'}),
+            'quantity_returned': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+InventorySessionItemFormSet = inlineformset_factory(
+    InventorySession, InventorySessionItem, form=InventorySessionItemForm,
+    extra=1, can_delete=True
+)
 
 class CustomerForm(forms.ModelForm):
     class Meta:

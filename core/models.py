@@ -229,6 +229,29 @@ class InventoryLog(models.Model):
     is_closed = models.BooleanField(default=False)
     created_by = models.ForeignKey(User, on_delete=models.PROTECT)
 
+class InventorySession(models.Model):
+    STATUS_CHOICES = (
+        ('OPEN', 'Open'),
+        ('CLOSED', 'Closed'),
+    )
+    outlet_name = models.CharField(max_length=50, choices=Bill.OUTLET_CHOICES)
+    created_by = models.ForeignKey(User, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='OPEN')
+    
+    def __str__(self):
+        return f"{self.get_outlet_name_display()} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
+class InventorySessionItem(models.Model):
+    session = models.ForeignKey(InventorySession, related_name='items', on_delete=models.CASCADE)
+    item = models.ForeignKey(Item, on_delete=models.PROTECT)
+    quantity_taken = models.PositiveIntegerField(default=0)
+    quantity_returned = models.PositiveIntegerField(default=0)
+    
+    @property
+    def quantity_sold(self):
+        return max(0, self.quantity_taken - self.quantity_returned)
+
 class Attendance(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField(default=timezone.now)
@@ -240,15 +263,18 @@ class Attendance(models.Model):
 
 class StudentWorkLog(models.Model):
     STATUS_CHOICES = (
+        ('OPEN', 'Open'),
         ('PENDING', 'Pending'),
         ('APPROVED', 'Approved'),
         ('REJECTED', 'Rejected'),
     )
     student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': 'STUDENT'})
     date = models.DateField(default=timezone.now)
-    working_hours = models.DecimalField(max_digits=5, decimal_places=2)
+    entry_time = models.TimeField(null=True, blank=True)
+    exit_time = models.TimeField(null=True, blank=True)
+    working_hours = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     overtime_hours = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='OPEN')
     
     def total_cost(self):
         # Placeholder for cost calculation logic

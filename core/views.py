@@ -29,7 +29,7 @@ def check_permission(user, module):
 
 @login_required
 def dashboard(request):
-    today = timezone.now().date()
+    today = timezone.localtime(timezone.now()).date()
     daily_sales = Bill.objects.filter(created_at__date=today).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
     pending_payments = Bill.objects.filter(payment_status='PENDING').count()
     recent_bills = Bill.objects.all().order_by('-created_at')[:10]
@@ -76,11 +76,12 @@ def create_user(request):
         form = CustomUserCreationForm()
     return render(request, 'core/form_generic.html', {'form': form, 'title': 'Create User'})
 
-from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, BillPayment, Attendance, StudentWorkLog, PurchaseRecord, PurchaseItem, VendorPayment, ActivityLog, RolePermission
+from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, BillPayment, Attendance, StudentWorkLog, PurchaseRecord, PurchaseItem, VendorPayment, ActivityLog, RolePermission, InventorySession, InventorySessionItem
 from .forms import (
-    CustomUserCreationForm, BillForm, BillItemFormSet, InventoryLogForm, ItemForm, 
+    InventoryLogForm, ItemForm, 
     CustomerForm, VendorForm, BillPaymentFormSet, AttendanceForm, StudentWorkLogForm,
-    PurchaseRecordForm, VendorPaymentForm, RolePermissionForm
+    PurchaseRecordForm, VendorPaymentForm, RolePermissionForm,
+    InventorySessionForm, InventorySessionItemFormSet
 )
 # ... checks ...
 
@@ -161,8 +162,130 @@ def profile(request):
 @login_required
 @user_passes_test(lambda u: check_permission(u, 'inventory'))
 def inventory_list(request):
-    logs = InventoryLog.objects.all().order_by('-date_issued')
-    return render(request, 'core/inventory_list.html', {'logs': logs})
+    sessions = InventorySession.objects.all().order_by('-created_at')
+    return render(request, 'core/inventory_list.html', {'sessions': sessions})
+
+@login_required
+@user_passes_test(lambda u: check_permission(u, 'inventory'))
+def create_inventory_session(request):
+    if request.method == 'POST':
+        form = InventorySessionForm(request.POST)
+        formset = InventorySessionItemFormSet(request.POST)
+        if form.is_valid() and formset.is_valid():
+            session = form.save(commit=False)
+            session.created_by = request.user
+            session.save()
+            formset.instance = session
+            formset.save()
+            messages.success(request, "Inventory session created (Stock Out)")
+            return redirect('inventory_list')
+    else:
+        form = InventorySessionForm()
+        formset = InventorySessionItemFormSet()
+        
+    items = Item.objects.filter(is_active=True)
+    # Mapping for potential JS price/info if needed
+    items_json = json.dumps({item.id: str(item.price) for item in items})
+    
+    return render(request, 'core/inventory_session_form.html', {
+        'form': form, 
+        'formset': formset,
+        'title': 'Create Stock Out Session',
+        'items_json': items_json
+    })
+
+@login_required
+@user_passes_test(lambda u: check_permission(u, 'inventory'))
+def edit_inventory_session(request, pk):
+    session = get_object_or_404(InventorySession, pk=pk)
+    if session.status == 'CLOSED':
+        messages.warning(request, "Cannot edit closed session")
+        return redirect('inventory_list')
+        
+    if request.method == 'POST':
+        form = InventorySessionForm(request.POST, instance=session)
+        formset = InventorySessionItemFormSet(request.POST, instance=session)
+        if form.is_valid() and formset.is_valid():
+            form.save()
+            formset.save()
+            messages.success(request, "Inventory seesion updated")
+            return redirect('inventory_list')
+    else:
+        form = InventorySessionForm(instance=session)
+        formset = InventorySessionItemFormSet(instance=session)
+        
+    items = Item.objects.filter(is_active=True)
+    items_json = json.dumps({item.id: str(item.price) for item in items})
+
+    return render(request, 'core/inventory_session_form.html', {
+        'form': form, 
+        'formset': formset,
+        'title': 'Stock Return / Update Session',
+        'session': session,
+        'items_json': items_json
+    })
+
+@login_required
+@user_passes_test(lambda u: check_permission(u, 'inventory'))
+def close_inventory_session(request, pk):
+    session = get_object_or_404(InventorySession, pk=pk)
+    if session.status == 'CLOSED':
+        return redirect('inventory_list')
+        
+    if request.method == 'POST':
+        # Validate logic: Returned <= Taken
+        items = session.items.all()
+        invalid = False
+        has_items = False
+        for i in items:
+            if i.quantity_taken > 0:
+                has_items = True
+            if i.quantity_returned > i.quantity_taken:
+                invalid = True
+                messages.error(request, f"Error: Item {i.item.name} has more returned ({i.quantity_returned}) than taken ({i.quantity_taken})")
+        
+        if not has_items:
+             messages.error(request, "Session has no items taken.")
+             return redirect('edit_inventory_session', pk=pk)
+             
+        if invalid:
+            return redirect('edit_inventory_session', pk=pk)
+            
+        # All good, create Sales Bill
+        session.status = 'CLOSED'
+        session.save()
+        
+        # Aggregate sold items
+        sold_items = []
+        total_amount = Decimal(0)
+        
+        bill = Bill.objects.create(
+            bill_type='SALES',
+            created_by=request.user,
+            outlet_name=session.outlet_name,
+            payment_type='CASH',
+            payment_status='PENDING',
+            remarks=f"Auto-generated from Inventory Session #{session.id}"
+        )
+        
+        for i in items:
+            sold_qty = i.quantity_sold
+            if sold_qty > 0:
+                BillItem.objects.create(
+                    bill=bill,
+                    item=i.item,
+                    quantity=sold_qty,
+                    price=i.item.price
+                )
+                total_amount += sold_qty * i.item.price
+        
+        bill.total_amount = total_amount
+        bill.save()
+        
+        messages.success(request, f"Session Closed. Sales Bill {bill.invoice_number} Generated.")
+        return redirect('bill_detail', pk=bill.id)
+        
+    return render(request, 'core/inventory_close.html', {'session': session})
 
 @login_required
 @user_passes_test(lambda u: check_permission(u, 'inventory'))
@@ -1038,15 +1161,16 @@ def attendance_list(request):
 def clock_in(request):
     if request.method == 'POST':
         # Check if already clocked in today
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         existing = Attendance.objects.filter(user=request.user, out_time__isnull=True, date=today).first()
         if existing:
             messages.warning(request, "You are already clocked in.")
         else:
+            now_local = timezone.localtime(timezone.now())
             Attendance.objects.create(
                 user=request.user,
-                date=today,
-                in_time=timezone.now().time()
+                date=now_local.date(),
+                in_time=now_local.time()
             )
             messages.success(request, "Clocked in successfully.")
     return redirect('attendance_list')
@@ -1055,11 +1179,12 @@ def clock_in(request):
 @user_passes_test(lambda u: check_permission(u, 'attendance'))
 def clock_out(request):
     if request.method == 'POST':
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         # Find open attendance for today
         attendance = Attendance.objects.filter(user=request.user, out_time__isnull=True, date=today).first()
         if attendance:
-            attendance.out_time = timezone.now().time()
+            now_local = timezone.localtime(timezone.now())
+            attendance.out_time = now_local.time()
             # Calculate duration
             dt_in = datetime.combine(today, attendance.in_time)
             dt_out = datetime.combine(today, attendance.out_time)
@@ -1148,28 +1273,86 @@ def create_attendance(request):
 @user_passes_test(lambda u: check_permission(u, 'worklogs'))
 def worklog_list(request):
     if request.user.is_supervisor_or_admin() or request.user.role == 'ACCOUNTANT':
-        logs = StudentWorkLog.objects.all().order_by('-date')
+        logs = StudentWorkLog.objects.exclude(status='OPEN').order_by('-date', '-entry_time')
     else:
-        logs = StudentWorkLog.objects.filter(student=request.user).order_by('-date')
-    return render(request, 'core/worklog_list.html', {'logs': logs})
+        logs = StudentWorkLog.objects.filter(student=request.user).order_by('-date', '-entry_time')
+    
+    current_worklog = None
+    if request.user.role == 'STUDENT':
+        current_worklog = StudentWorkLog.objects.filter(student=request.user, status='OPEN').first()
+        
+    return render(request, 'core/worklog_list.html', {'logs': logs, 'current_worklog': current_worklog})
 
 @login_required
 @user_passes_test(lambda u: check_permission(u, 'worklogs'))
-def create_worklog(request):
+def start_worklog(request):
     if request.user.role != 'STUDENT':
         messages.error(request, "Only students can create work logs")
         return redirect('dashboard')
+    
+    # Check if already has an open log
+    open_log = StudentWorkLog.objects.filter(student=request.user, status='OPEN').exists()
+    if open_log:
+         messages.warning(request, "You already have an active work session.")
+         return redirect('worklog_list')
+
     if request.method == 'POST':
-        form = StudentWorkLogForm(request.POST)
-        if form.is_valid():
-            log = form.save(commit=False)
-            log.student = request.user
-            log.save()
-            messages.success(request, "Work log submitted for approval")
+        now_local = timezone.localtime(timezone.now())
+        StudentWorkLog.objects.create(
+            student=request.user,
+            date=now_local.date(),
+            entry_time=now_local.time(),
+            status='OPEN'
+        )
+        messages.success(request, "Work started. Entry time logged.")
+    return redirect('worklog_list')
+
+@login_required
+@user_passes_test(lambda u: check_permission(u, 'worklogs'))
+def end_worklog(request):
+    if request.user.role != 'STUDENT':
+        messages.error(request, "Only students can end work logs")
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        # Find open session
+        log = StudentWorkLog.objects.filter(student=request.user, status='OPEN').first()
+        if not log:
+            messages.error(request, "No active work session found.")
             return redirect('worklog_list')
-    else:
-        form = StudentWorkLogForm()
-    return render(request, 'core/form_generic.html', {'form': form, 'title': 'Submit Work Log'})
+            
+        now_local = timezone.localtime(timezone.now())
+        log.exit_time = now_local.time()
+        
+        # Calculate duration
+        # Use log.date for entry time reference
+        dt_in = datetime.combine(log.date, log.entry_time)
+        # Use current date for exit time reference
+        current_date_out = now_local.date()
+        dt_out = datetime.combine(current_date_out, log.exit_time)
+        
+        # If somehow dt_out is before dt_in (e.g. timezone glitch or logic error), handle it
+        if dt_out < dt_in:
+             # Fallback: assume same day if date is weird, or just error. 
+             # Ideally this shouldn't happen if clocking out after clocking in.
+             # But if they clock in today and clock out... yesterday? Impossible.
+             # If they clock in today 23:00 and clock out today 22:00?
+             pass 
+             
+        diff = dt_out - dt_in
+        hours = diff.total_seconds() / 3600
+        
+        # Ensure non-negative
+        if hours < 0:
+            hours = 0
+            
+        log.working_hours = Decimal(hours)
+        log.status = 'PENDING'
+        log.save()
+        
+        messages.success(request, f"Work ended. Total hours: {hours:.2f}. Submitted for approval.")
+        
+    return redirect('worklog_list')
 
 @login_required
 @user_passes_test(lambda u: check_permission(u, 'worklogs'))
