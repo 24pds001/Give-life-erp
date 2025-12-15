@@ -61,6 +61,8 @@ class User(AbstractUser):
         if self.role == 'EMPLOYEE' and module_name in ['billing', 'invoices']:
              pass # Logic was pass? implies False default return at end.
              return True
+        if self.role == 'STUDENT' and module_name == 'inventory':
+            return True
         return False
 
     def save(self, *args, **kwargs):

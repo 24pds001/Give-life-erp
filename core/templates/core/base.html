@@ -50,10 +50,13 @@
                 </a>
                 {% endif %}
 
-                {% if user|has_module_access:'inventory' %}
+                {% if user|has_module_access:'items' %}
                 <a href="{% url 'item_list' %}" class="sidebar-link {% if 'items' in request.path %}active{% endif %}">
                     <i class="bi bi-box-seam"></i> Item Management
                 </a>
+                {% endif %}
+
+                {% if user|has_module_access:'inventory' %}
                 <a href="{% url 'inventory_list' %}"
                     class="sidebar-link {% if 'inventory' in request.path %}active{% endif %}">
                     <i class="bi bi-clipboard-data"></i> Tracking Logs
