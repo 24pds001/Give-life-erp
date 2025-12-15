@@ -34,7 +34,7 @@
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
 
-                {% if user|has_module_access:'user_management' %}
+                {% if user.role == 'ADMIN' %}
                 <div class="sidebar-heading">Administration</div>
                 <a href="{% url 'user_list' %}" class="sidebar-link {% if 'users' in request.path %}active{% endif %}">
                     <i class="bi bi-people"></i> Manage Users

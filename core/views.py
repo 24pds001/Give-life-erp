@@ -58,13 +58,13 @@ def dashboard(request):
     return render(request, 'core/dashboard.html', context)
 
 @login_required
-@user_passes_test(lambda u: check_permission(u, 'user_management'))
+@user_passes_test(lambda u: u.role == 'ADMIN')
 def user_list(request):
     users = User.objects.all()
     return render(request, 'core/user_list.html', {'users': users})
 
 @login_required
-@user_passes_test(lambda u: check_permission(u, 'user_management'))
+@user_passes_test(lambda u: u.role == 'ADMIN')
 def create_user(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
