@@ -1440,6 +1440,94 @@ def purchase_list(request):
 
 @login_required
 @user_passes_test(lambda u: check_permission(u, 'purchases'))
+def export_purchases(request):
+    purchases = PurchaseRecord.objects.all().order_by('-ordered_date')
+    
+    response = HttpResponse(content_type='text/csv')
+    filename = f"purchases_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    writer = csv.writer(response)
+    
+    # Headers: S.no, Purchase Order ID, Vendor Name, Bill No, Ordered Date, Received Date, Amount, Payment Status, Payment Date
+    writer.writerow(['S.no', 'Purchase Order ID', 'Vendor Name', 'Bill No', 'Ordered Date', 'Received Date', 'Amount', 'Payment Status', 'Payment Date'])
+    
+    grand_total = Decimal(0)
+    for idx, purchase in enumerate(purchases, 1):
+        writer.writerow([
+            idx,
+            purchase.purchase_order_id,
+            purchase.vendor.name,
+            purchase.bill_no,
+            purchase.ordered_date,
+            purchase.received_date,
+            purchase.total_amount,
+            purchase.get_payment_status_display(),
+            purchase.payment_date
+        ])
+        grand_total += purchase.total_amount
+        
+    writer.writerow([])
+    # Grand Total Row
+    writer.writerow(['', '', '', '', '', 'Grand Total', '', ''])
+    writer.writerow(['', '', '', '', '', grand_total, '', ''])
+    
+    return response
+
+@login_required
+@user_passes_test(lambda u: check_permission(u, 'purchases'))
+def export_pending_purchases(request):
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+    
+    query = Q(payment_status='PENDING')
+    
+    if start_date_str:
+        query &= Q(ordered_date__gte=start_date_str)
+    if end_date_str:
+        query &= Q(ordered_date__lte=end_date_str)
+        
+    purchases = PurchaseRecord.objects.filter(query).order_by('ordered_date').select_related('vendor')
+    
+    response = HttpResponse(content_type='text/csv')
+    filename = f"pending_payments_{start_date_str}_to_{end_date_str}.csv"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    writer = csv.writer(response)
+    
+    # Title
+    start_fmt = datetime.strptime(start_date_str, '%Y-%m-%d').strftime('%d-%m-%Y') if start_date_str else 'Start'
+    end_fmt = datetime.strptime(end_date_str, '%Y-%m-%d').strftime('%d-%m-%Y') if end_date_str else 'End'
+    writer.writerow([f"Give Life Vendor Payment Details for the period from {start_fmt} to {end_fmt}"])
+    writer.writerow([])
+    
+    # Headers
+    # S.no, purchase order , Name, A/c Holder’s Name, Name of the Bank, Account Number, IFSC Code, Branch, Mobile Number, Total Amount to Pay
+    headers = ['S.no', 'Purchase Order', 'Name', 'A/c Holder\'s Name', 'Name of the Bank', 'Account Number', 'IFSC Code', 'Branch', 'Mobile Number', 'Total Amount to Pay']
+    writer.writerow(headers)
+    
+    grand_total = Decimal(0)
+    for idx, p in enumerate(purchases, 1):
+        v = p.vendor
+        writer.writerow([
+            idx,
+            p.purchase_order_id,
+            v.name,
+            v.account_holder_name or '',
+            v.bank_name or '',
+            v.ac_number or '',
+            v.ifsc_code or '',
+            v.branch or '',
+            v.contact or '',
+            p.total_amount
+        ])
+        grand_total += p.total_amount
+        
+    writer.writerow([])
+    writer.writerow(['', '', '', '', '', '', '', '', 'Grand Total', grand_total])
+    
+    return response
+
+@login_required
+@user_passes_test(lambda u: check_permission(u, 'purchases'))
 def create_purchase(request):
     if request.method == 'POST':
         form = PurchaseRecordForm(request.POST)

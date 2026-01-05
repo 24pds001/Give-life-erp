@@ -297,12 +297,33 @@ class StudentWorkLog(models.Model):
         # Placeholder for cost calculation logic
         return 0 
 
+
 class PurchaseRecord(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.PROTECT)
+    purchase_order_id = models.CharField(max_length=50, unique=True, blank=True)
+    bill_no = models.CharField(max_length=50, blank=True)
     description = models.TextField()
     total_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    ordered_date = models.DateField(default=timezone.now)
+    received_date = models.DateField(null=True, blank=True)
+    payment_status = models.CharField(max_length=20, choices=Bill.PAYMENT_STATUS, default='PENDING')
+    payment_date = models.DateField(null=True, blank=True)
     date = models.DateTimeField(default=timezone.now)
     purchased_by = models.ForeignKey(User, on_delete=models.PROTECT)
+
+    def save(self, *args, **kwargs):
+        if not self.purchase_order_id:
+            last_po = PurchaseRecord.objects.all().order_by('id').last()
+            if last_po and last_po.purchase_order_id.startswith('PO-'):
+                try:
+                    last_num = int(last_po.purchase_order_id.split('-')[-1])
+                    new_id = last_num + 1
+                except ValueError:
+                    new_id = PurchaseRecord.objects.count() + 1
+            else:
+                new_id = 1
+            self.purchase_order_id = f"PO-{new_id:04d}"
+        super().save(*args, **kwargs)
 
 class PurchaseItem(models.Model):
     purchase = models.ForeignKey(PurchaseRecord, related_name='items', on_delete=models.CASCADE)

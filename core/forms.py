@@ -216,12 +216,16 @@ class StudentWorkLogForm(forms.ModelForm):
 class PurchaseRecordForm(forms.ModelForm):
     class Meta:
         model = PurchaseRecord
-        fields = ['vendor', 'description', 'total_amount', 'date']
+        fields = ['vendor', 'bill_no', 'description', 'total_amount', 'ordered_date', 'received_date', 'payment_status', 'payment_date']
         widgets = {
             'vendor': forms.Select(attrs={'class': 'form-select'}),
+            'bill_no': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'total_amount': forms.NumberInput(attrs={'class': 'form-control'}),
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'ordered_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'received_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'payment_status': forms.Select(attrs={'class': 'form-select'}),
+            'payment_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
 
 class VendorPaymentForm(forms.ModelForm):
