@@ -3,6 +3,17 @@
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Payroll Summary</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <form class="d-flex align-items-center gap-2 me-2">
+            <input type="date" name="start_date" class="form-control form-control-sm" value="{{ filter_start_date|default:'' }}">
+            <span class="text-muted">-</span>
+            <input type="date" name="end_date" class="form-control form-control-sm" value="{{ filter_end_date|default:'' }}">
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Filter</button>
+        </form>
+        <a href="{% url 'export_student_payroll' %}?start_date={{ filter_start_date|default:'' }}&end_date={{ filter_end_date|default:'' }}" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-download"></i> Export Student Payroll
+        </a>
+    </div>
 </div>
 
 <div class="table-responsive">

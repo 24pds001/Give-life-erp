@@ -1422,6 +1422,12 @@ def approve_worklog(request, pk):
         messages.error(request, "Unauthorized")
         return redirect('worklog_list')
     log = get_object_or_404(StudentWorkLog, pk=pk)
+    
+    # Prevent modification if already final
+    if log.status in ['APPROVED', 'REJECTED']:
+        messages.warning(request, f"This work log is already {log.get_status_display()} and cannot be changed.")
+        return redirect('worklog_list')
+
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'approve':
@@ -1595,46 +1601,129 @@ def approve_vendor_payment(request, pk):
 @login_required
 @user_passes_test(lambda u: check_permission(u, 'reports'))
 def payroll_summary(request):
-    # Simple payroll calculation
-    # For students: Sum of approved work logs * hourly rate (assuming fixed rate for now, or add to model)
-    # For employees: Sum of attendance hours * hourly rate
-    
-    # Let's assume a fixed hourly rate for now or fetch from user profile if added.
-    # Requirement says "Payroll Management" but doesn't specify rate storage.
-    # I'll assume a default rate of 100 for now for demonstration.
-    
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
     payroll_data = []
-    
+
     # Students
     students = User.objects.filter(role='STUDENT')
     for student in students:
         logs = StudentWorkLog.objects.filter(student=student, status='APPROVED')
+        if start_date:
+            logs = logs.filter(date__gte=start_date)
+        if end_date:
+            logs = logs.filter(date__lte=end_date)
+
         total_hours = logs.aggregate(Sum('working_hours'))['working_hours__sum'] or 0
         overtime = logs.aggregate(Sum('overtime_hours'))['overtime_hours__sum'] or 0
         # Assuming rate 50 for students
-        amount = (total_hours * 50) + (overtime * 75) # 1.5x for overtime
-        payroll_data.append({
-            'user': student,
-            'role': 'Student',
-            'total_hours': total_hours,
-            'overtime': overtime,
-            'amount': amount
-        })
+        amount = (total_hours * 50) + (overtime * 75)
         
+        if total_hours > 0 or overtime > 0: # Only show active
+            payroll_data.append({
+                'user': student,
+                'role': 'Student',
+                'total_hours': total_hours,
+                'overtime': overtime,
+                'amount': amount
+            })
+
     # Employees
     employees = User.objects.filter(role='EMPLOYEE')
     for emp in employees:
-        # Attendance based
         logs = Attendance.objects.filter(user=emp)
+        if start_date:
+            logs = logs.filter(date__gte=start_date)
+        if end_date:
+            logs = logs.filter(date__lte=end_date)
+            
         total_hours = logs.aggregate(Sum('total_hours'))['total_hours__sum'] or 0
-        # Assuming rate 100 for employees
-        amount = total_hours * 100
-        payroll_data.append({
-            'user': emp,
-            'role': 'Employee',
-            'total_hours': total_hours,
-            'overtime': 0, # Attendance model has overtime but logic needs to be defined
-            'amount': amount
-        })
+        amount = total_hours * 100 # Rate 100
         
-    return render(request, 'core/payroll_summary.html', {'payroll_data': payroll_data})
+        if total_hours > 0:
+            payroll_data.append({
+                'user': emp,
+                'role': 'Employee',
+                'total_hours': total_hours,
+                'overtime': 0,
+                'amount': amount
+            })
+
+    return render(request, 'core/payroll_summary.html', {
+        'payroll_data': payroll_data,
+        'filter_start_date': start_date,
+        'filter_end_date': end_date
+    })
+
+@login_required
+@user_passes_test(lambda u: check_permission(u, 'reports'))
+def export_student_payroll(request):
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    response = HttpResponse(content_type='text/csv')
+    filename = f"student_payroll_{start_date}_to_{end_date}.csv"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    writer = csv.writer(response)
+
+    # Header
+    month_str = ""
+    if start_date:
+        try:
+             # Basic attempt to guess month from start date
+             dt = datetime.strptime(start_date, '%Y-%m-%d')
+             month_str = dt.strftime('%B %Y')
+        except:
+             month_str = "Specified Period"
+    
+    writer.writerow([f"Loyola Reach out café Student payroll for the month {month_str}"])
+    writer.writerow(['S.no', 'Students Name', 'Name on Bank Account', 'Name of the bank', 'Account Number', 'IFSC Code', 'Mobile Number', 'Total Hours', 'OT', 'Amount'])
+
+    students = User.objects.filter(role='STUDENT')
+    idx = 1
+    grand_total = Decimal(0)
+
+    for student in students:
+        logs = StudentWorkLog.objects.filter(student=student, status='APPROVED')
+        if start_date:
+            logs = logs.filter(date__gte=start_date)
+        if end_date:
+            logs = logs.filter(date__lte=end_date)
+        
+        total_hours = logs.aggregate(Sum('working_hours'))['working_hours__sum'] or Decimal(0)
+        overtime = logs.aggregate(Sum('overtime_hours'))['overtime_hours__sum'] or Decimal(0)
+        
+        if total_hours == 0 and overtime == 0:
+            continue
+            
+        amount = (total_hours * 50) + (overtime * 75)
+        grand_total += amount
+
+        writer.writerow([
+            idx,
+            student.username, # Or first_name + last_name
+            student.account_holder_name or '',
+            student.bank_name or '',
+            student.account_number or '',
+            student.ifsc_code or '',
+            student.contact_number or '',
+            total_hours,
+            overtime,
+            amount
+        ])
+        idx += 1
+    
+    writer.writerow([])
+    writer.writerow(['', '', '', '', '', '', '', '', 'Grand Total', grand_total])
+    writer.writerow([])
+    writer.writerow([])
+    
+    # Footer signatures
+    today_str = datetime.now().strftime('%d-%m-%Y')
+    writer.writerow([f"Date: {today_str}", "", "", "", "", "", "Place: Chennai"])
+    writer.writerow([])
+    writer.writerow([])
+    writer.writerow(["Give life incharge signature", "", "", "", "", "", "Principal Signature"])
+
+    return response

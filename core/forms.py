@@ -7,7 +7,7 @@ from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, 
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = User
-        fields = ('username', 'role', 'emp_id', 'emp_type', 'contact_number')
+        fields = ('username', 'role', 'emp_id', 'emp_type', 'contact_number', 'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'branch')
 
 class RolePermissionForm(forms.Form):
     # Dynamically generated fields based on RolePermission.get_default_permissions()

@@ -62,5 +62,6 @@ urlpatterns = [
     path('vendor-payments/create/', views.create_vendor_payment, name='create_vendor_payment'),
     path('vendor-payments/approve/<int:pk>/', views.approve_vendor_payment, name='approve_vendor_payment'),
     path('payroll/', views.payroll_summary, name='payroll_summary'),
+    path('payroll/export/', views.export_student_payroll, name='export_student_payroll'),
 ]
 # URLs updated for purchase export

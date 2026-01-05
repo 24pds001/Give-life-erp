@@ -19,6 +19,14 @@ class User(AbstractUser):
     emp_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
     emp_type = models.CharField(max_length=20, choices=EMP_TYPE_CHOICES, null=True, blank=True)
     contact_number = models.CharField(max_length=15, null=True, blank=True)
+    
+    # Bank Details
+    account_holder_name = models.CharField(max_length=200, blank=True)
+    bank_name = models.CharField(max_length=200, blank=True)
+    account_number = models.CharField(max_length=50, blank=True)
+    ifsc_code = models.CharField(max_length=20, blank=True)
+    branch = models.CharField(max_length=100, blank=True)
+
     module_permissions = models.JSONField(default=dict, blank=True)
 
     def is_supervisor_or_admin(self):
