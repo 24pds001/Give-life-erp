@@ -1112,6 +1112,30 @@ def delete_vendor(request, pk):
     return render(request, 'core/form_generic.html', {'form': None, 'title': f'Delete Vendor {vendor.name}', 'object': vendor})
 
 @login_required
+@user_passes_test(lambda u: check_permission(u, 'vendors'))
+def export_vendors(request):
+    vendors = Vendor.objects.all()
+    response = HttpResponse(content_type='text/csv')
+    filename = f"vendors_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    writer = csv.writer(response)
+    # S.no, Name, A/c Holder’s Name, Name of the Bank, Account Number, Ifsc Code, Branch, Mobile Number
+    writer.writerow(['S.no', 'Name', 'A/c Holder\'s Name', 'Name of the Bank', 'Account Number', 'Ifsc Code', 'Branch', 'Mobile Number'])
+    
+    for idx, vendor in enumerate(vendors, 1):
+        writer.writerow([
+            idx,
+            vendor.name,
+            vendor.account_holder_name,
+            vendor.bank_name,
+            vendor.ac_number,
+            vendor.ifsc_code,
+            vendor.branch,
+            vendor.contact
+        ])
+    return response
+
+@login_required
 @user_passes_test(lambda u: check_permission(u, 'employees'))
 def employee_list(request):
     employees = User.objects.filter(role__in=['EMPLOYEE', 'STUDENT'])

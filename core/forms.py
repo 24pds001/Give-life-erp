@@ -183,9 +183,11 @@ class VendorForm(forms.ModelForm):
         widgets = {
             'vendor_id': forms.TextInput(attrs={'class': 'form-control'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'account_holder_name': forms.TextInput(attrs={'class': 'form-control'}),
             'bank_name': forms.TextInput(attrs={'class': 'form-control'}),
             'ac_number': forms.TextInput(attrs={'class': 'form-control'}),
             'ifsc_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'branch': forms.TextInput(attrs={'class': 'form-control'}),
             'contact': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),

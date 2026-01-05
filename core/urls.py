@@ -37,6 +37,7 @@ urlpatterns = [
     path('inventory/edit/<int:pk>/', views.edit_inventory_session, name='edit_inventory_session'),
     path('inventory/close/<int:pk>/', views.close_inventory_session, name='close_inventory_session'),
     path('vendors/', views.vendor_list, name='vendor_list'),
+    path('vendors/export/', views.export_vendors, name='export_vendors'),
     path('vendors/create/', views.create_vendor, name='create_vendor'),
     path('vendors/edit/<int:pk>/', views.edit_vendor, name='edit_vendor'),
     path('vendors/delete/<int:pk>/', views.delete_vendor, name='delete_vendor'),

@@ -118,9 +118,11 @@ class Customer(models.Model):
 class Vendor(models.Model):
     vendor_id = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=200)
+    account_holder_name = models.CharField(max_length=200, blank=True)
     bank_name = models.CharField(max_length=200, blank=True)
     ac_number = models.CharField(max_length=50, blank=True)
     ifsc_code = models.CharField(max_length=20, blank=True)
+    branch = models.CharField(max_length=100, blank=True)
     contact = models.CharField(max_length=50, blank=True)
     email = models.EmailField(blank=True)
     is_active = models.BooleanField(default=True)
