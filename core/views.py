@@ -1208,13 +1208,17 @@ def attendance_list(request):
     # Get all users for filter dropdown (only for admins/accountants)
     users = User.objects.filter(role__in=['EMPLOYEE', 'STUDENT']) if (request.user.is_supervisor_or_admin() or request.user.role == 'ACCOUNTANT') else None
 
+    # Get today's student work logs
+    todays_student_logs = StudentWorkLog.objects.filter(date=timezone.now().date()).select_related('student')
+
     return render(request, 'core/attendance_list.html', {
         'logs': page_obj, # Pass page_obj instead of all logs
         'current_attendance': current_attendance,
         'filter_start_date': start_date,
         'filter_end_date': end_date,
         'filter_user_id': user_id,
-        'users': users
+        'users': users,
+        'todays_student_logs': todays_student_logs
     })
 
 @login_required
