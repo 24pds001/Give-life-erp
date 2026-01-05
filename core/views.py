@@ -1542,6 +1542,27 @@ def create_purchase(request):
     return render(request, 'core/form_generic.html', {'form': form, 'title': 'Record Purchase'})
 
 @login_required
+@user_passes_test(lambda u: check_permission(u, 'purchases'))
+def edit_purchase(request, pk):
+    purchase = get_object_or_404(PurchaseRecord, pk=pk)
+    
+    # Check if payment status is PENDING
+    if purchase.payment_status != 'PENDING':
+        messages.warning(request, "Only pending purchases can be edited.")
+        return redirect('purchase_list')
+
+    if request.method == 'POST':
+        form = PurchaseRecordForm(request.POST, instance=purchase)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Purchase record updated")
+            return redirect('purchase_list')
+    else:
+        form = PurchaseRecordForm(instance=purchase)
+    
+    return render(request, 'core/form_generic.html', {'form': form, 'title': 'Edit Purchase Record'})
+
+@login_required
 @user_passes_test(lambda u: check_permission(u, 'vendors'))
 def vendor_payment_list(request):
     payments = VendorPayment.objects.all().order_by('-date')

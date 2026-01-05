@@ -306,6 +306,7 @@ class PurchaseRecord(models.Model):
     total_amount = models.DecimalField(max_digits=12, decimal_places=2)
     ordered_date = models.DateField(default=timezone.now)
     received_date = models.DateField(null=True, blank=True)
+    payment_type = models.CharField(max_length=20, choices=Bill.PAYMENT_TYPE_CHOICES, null=True, blank=True)
     payment_status = models.CharField(max_length=20, choices=Bill.PAYMENT_STATUS, default='PENDING')
     payment_date = models.DateField(null=True, blank=True)
     date = models.DateTimeField(default=timezone.now)
