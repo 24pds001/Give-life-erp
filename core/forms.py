@@ -7,7 +7,7 @@ from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, 
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = User
-        fields = ('username', 'role', 'emp_id', 'emp_type', 'contact_number')
+        fields = ('username', 'role', 'emp_id', 'emp_type', 'contact_number', 'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'branch')
 
 class RolePermissionForm(forms.Form):
     # Dynamically generated fields based on RolePermission.get_default_permissions()
@@ -216,7 +216,7 @@ class StudentWorkLogForm(forms.ModelForm):
 class PurchaseRecordForm(forms.ModelForm):
     class Meta:
         model = PurchaseRecord
-        fields = ['vendor', 'bill_no', 'description', 'total_amount', 'ordered_date', 'received_date', 'payment_status', 'payment_date']
+        fields = ['vendor', 'bill_no', 'description', 'total_amount', 'ordered_date', 'received_date', 'payment_type', 'payment_status', 'payment_date']
         widgets = {
             'vendor': forms.Select(attrs={'class': 'form-select'}),
             'bill_no': forms.TextInput(attrs={'class': 'form-control'}),
@@ -224,6 +224,7 @@ class PurchaseRecordForm(forms.ModelForm):
             'total_amount': forms.NumberInput(attrs={'class': 'form-control'}),
             'ordered_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'received_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'payment_type': forms.Select(attrs={'class': 'form-select'}),
             'payment_status': forms.Select(attrs={'class': 'form-select'}),
             'payment_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }

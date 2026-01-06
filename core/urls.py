@@ -57,9 +57,11 @@ urlpatterns = [
     path('purchases/export/', views.export_purchases, name='export_purchases'),
     path('purchases/export/pending/', views.export_pending_purchases, name='export_pending_purchases'),
     path('purchases/create/', views.create_purchase, name='create_purchase'),
+    path('purchases/edit/<int:pk>/', views.edit_purchase, name='edit_purchase'),
     path('vendor-payments/', views.vendor_payment_list, name='vendor_payment_list'),
     path('vendor-payments/create/', views.create_vendor_payment, name='create_vendor_payment'),
     path('vendor-payments/approve/<int:pk>/', views.approve_vendor_payment, name='approve_vendor_payment'),
     path('payroll/', views.payroll_summary, name='payroll_summary'),
+    path('payroll/export/', views.export_student_payroll, name='export_student_payroll'),
 ]
 # URLs updated for purchase export

@@ -44,6 +44,13 @@
                 <td>{{ purchase.description }}</td>
                 <td>{{ purchase.total_amount }}</td>
                 <td>{{ purchase.purchased_by.username }}</td>
+                <td>
+                    {% if purchase.payment_status == 'PENDING' %}
+                    <a href="{% url 'edit_purchase' purchase.pk %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    {% endif %}
+                </td>
             </tr>
             {% empty %}
             <tr>

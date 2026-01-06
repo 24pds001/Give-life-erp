@@ -50,7 +50,7 @@
                 <select class="form-select" id="user_id" name="user_id">
                     <option value="">All Employees</option>
                     {% for u in users %}
-                    <option value="{{ u.id }}" {% if filter_user_id==u.id|stringformat:"s" %}selected{% endif %}>{{
+                    <option value="{{ u.id }}" {% if filter_user_id == u.id|stringformat:"s" %}selected{% endif %}>{{
                         u.username }}</option>
                     {% endfor %}
                 </select>
@@ -61,6 +61,38 @@
                 <a href="{% url 'attendance_list' %}" class="btn btn-outline-secondary">Clear</a>
             </div>
         </form>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="mb-0">Today's Student Work Logs</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Entry Time</th>
+                        <th>Exit Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in todays_student_logs %}
+                    <tr>
+                        <td>{{ log.student.username }}</td>
+                        <td>{{ log.entry_time|default:"-" }}</td>
+                        <td>{{ log.exit_time|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">No student work logs started today.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
