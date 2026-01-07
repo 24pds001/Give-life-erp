@@ -5,310 +5,150 @@
 {% block title %}Invoice {{ bill.invoice_number }}{% endblock %}
 
 {% block content %}
-<div class="container mt-5 mb-5 font-inter">
-    <div class="invoice-card p-4 mx-auto" id="invoice-card">
-        <!-- Header Section -->
-        <div class="row align-items-center mb-4">
-            <div class="col-7 d-flex align-items-center">
-                <!-- Icon Placeholder -->
-                <div class="logo-icon me-3">
-                    <i class="bi bi-cup-hot-fill text-white fs-3"></i>
+<div class="container mt-4">
+    <div class="card shadow-sm border-0" id="invoice-card">
+        <div class="card-body p-5">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-6">
+                    <h2 class="fw-bold text-primary">Loyola Give Life Cafe</h2>
+                    <p class="text-muted mb-0">Loyola College, Chennai-34.</p>
+                    <p class="text-muted mb-0">Email Id : givelife@loyolacollege.edu</p>
                 </div>
-                <div>
-                    <h3 class="fw-bold text-primary mb-1">Loyola Give Life Cafe</h3>
-                    <p class="text-muted mb-0 small">Loyola College, Chennai-34.</p>
-                    <p class="text-muted mb-0 small">Email Id : givelife@loyolacollege.edu</p>
-                </div>
-            </div>
-            <div class="col-5">
-                <div class="invoice-details-box p-3">
-                    <h5 class="fw-bold text-center mb-3">INVOICE</h5>
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="fw-bold small">Invoice No:</span>
-                        <span class="small">{{ bill.invoice_number }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="fw-bold small">Date:</span>
-                        <span class="small">{{ bill.created_at|date:"d M Y" }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <span class="fw-bold small">Type:</span>
-                        <span class="small">{{ bill.get_bill_type_display }}</span>
-                    </div>
+                <div class="col-6 text-end">
+                    <h4 class="fw-bold">INVOICE</h4>
+                    <p class="mb-0"><strong>Invoice No:</strong> {{ bill.invoice_number }}</p>
+                    <p class="mb-0"><strong>Date:</strong> {{ bill.created_at|date:"d M Y" }}</p>
+                    <p class="mb-0"><strong>Type:</strong> {{ bill.get_bill_type_display }}</p>
                 </div>
             </div>
-        </div>
 
-        <div class="row mb-4">
-            <!-- Bill To Section -->
-            <div class="col-8 pe-0">
-                <div class="section-header text-white px-3 py-1 mb-0 d-inline-block rounded-top-2"
-                    style="background-color: #6c8caf;">
-                    <span class="small fw-bold">BILL TO</span>
-                </div>
-                <div class="bg-light p-3 rounded-bottom-2 rounded-end-2 border-top-0 detail-section h-50">
+            <hr>
+
+            <!-- Customer & Bill Details -->
+            <div class="row mb-4">
+                <div class="col-6">
+                    <h6 class="fw-bold text-uppercase text-muted small">Bill To</h6>
                     {% if bill.customer %}
                     <h5 class="fw-bold mb-1">{{ bill.customer.customer_name }}</h5>
-                    <p class="text-muted small mb-0">{{ bill.customer.address|linebreaksbr }}</p>
-                    <p class="text-muted small mb-0">{{ bill.customer.contact_number }}</p>
+                    <p class="text-muted mb-0">{{ bill.customer.address|linebreaksbr }}</p>
+                    <p class="text-muted mb-0">{{ bill.customer.contact_number }}</p>
                     {% else %}
                     <h5 class="fw-bold mb-1">{{ bill.customer_name }}</h5>
-                    <p class="text-muted small mb-0">{{ bill.customer_address|linebreaksbr }}</p>
+                    <p class="text-muted mb-0">{{ bill.customer_address|linebreaksbr }}</p>
+                    {% endif %}
+
+                    {% if bill.outlet_name %}
+                    <p class="mt-2"><strong>Outlet:</strong> {{ bill.get_outlet_name_display }}</p>
                     {% endif %}
                 </div>
-            </div>
-
-            <!-- Payment Details -->
-            <div class="col-4 ps-2">
-                <div class="bg-light p-3 rounded-2 h-10 detail-section">
-                    <h6 class="text-uppercase text-muted fw-bold small mb-3">PAYMENT DETAILS</h6>
-                    <div class="mb-2">
-                        <span class="fw-bold small">Status:</span>
-                        <span class="small">{{ bill.get_payment_status_display }}</span>
-                    </div>
-                    <div class="mb-0">
-                        <span class="fw-bold small">Mode:</span>
-                        <span class="small">
-                            {% with payments=bill.payments.all %}
-                            {% if payments %}
-                            {% for p in payments %}
-                            {{ p.get_payment_type_display }}{% if not forloop.last %}/{% endif %}
-                            {% endfor %}
-                            {% else %}
-                            {{ bill.get_payment_type_display }}
-                            {% endif %}
-                            {% endwith %}
+                <div class="col-6 text-end">
+                    <h6 class="fw-bold text-uppercase text-muted small">Payment Details</h6>
+                    <p class="mb-0"><strong>Status:</strong>
+                        <span
+                            class="badge {% if bill.payment_status == 'PAID' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                            {{ bill.get_payment_status_display }}
                         </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Items Table -->
-        <div class="table-responsive mb-0">
-            <table class="table table-borderless align-middle custom-table">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-3 text-uppercase small fw-bold text-muted" style="width: 5%;">#</th>
-                        <th class="text-uppercase small fw-bold text-muted" style="width: 65%;">ITEM DESCRIPTION</th>
-                        <th class="text-center text-uppercase small fw-bold text-muted" style="width: 10%;">QTY</th>
-                        <th class="text-end pe-3 text-uppercase small fw-bold text-muted" style="width: 20%;">PRICE</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in bill.items.all %}
-                    <tr class="border-bottom">
-                        <td class="ps-3">{{ forloop.counter }}</td>
-                        <td>
-                            {% if item.item %}
-                            {{ item.item.name }}
+                    </p>
+                    <p class="mb-0"><strong>Mode:</strong> 
+                        {% with payments=bill.payments.all %}
+                            {% if payments %}
+                                {% for p in payments %}
+                                    {{ p.get_payment_type_display }}: ₹{{ p.amount }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
                             {% else %}
-                            {{ item.custom_item_name }}
+                                {{ bill.get_payment_type_display }}
                             {% endif %}
-                        </td>
-                        <td class="text-center">{{ item.quantity }}</td>
-                        <td class="text-end pe-3">₹{{ item.total|floatformat:2 }}</td>
-                    </tr>
-                    {% endfor %}
-                    <!-- Totals Rows embedded in table layout for alignment if desired or separate -->
-                </tbody>
-            </table>
-        </div>
+                        {% endwith %}
+                    </p>
+                </div>
+            </div>
 
-        <!-- Totals Section -->
-        <div class="row mb-5">
-            <div class="col-6"></div>
-            <div class="col-6">
-                <div class="ps-3 pe-3">
-                    <div class="d-flex justify-content-between py-2 border-bottom">
-                        <span class="small">Total Amount</span>
-                        <span class="fw-bold">₹{{ bill.total_amount|floatformat:2 }}</span>
-                    </div>
-                    {% if bill.advance_payment > 0 %}
-                    <div class="d-flex justify-content-between py-2 border-bottom">
-                        <span class="small">Advance Paid</span>
-                        <span class="small text-muted">- ₹{{ bill.advance_payment|floatformat:2 }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between py-3">
-                        <span class="fw-bold fs-5">{% if bill.payment_status == 'PAID' %}Balance Paid{% else %}Balance
-                            Due{% endif %}</span>
-                        <span class="fw-bold fs-5">₹{{ bill.balance_due|floatformat:2 }}</span>
-                    </div>
-                    {% else %}
-                    <div class="d-flex justify-content-between py-3">
-                        <span class="fw-bold fs-5">Total</span>
-                        <span class="fw-bold fs-5">₹{{ bill.total_amount|floatformat:2 }}</span>
-                    </div>
-                    {% endif %}
+            <!-- Items Table -->
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Item Description</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in bill.items.all %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                {% if item.item %}
+                                {{ item.item.name }}
+                                {% else %}
+                                {{ item.custom_item_name }}
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-end">₹{{ item.price }}</td>
+                            <td class="text-end">₹{{ item.total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold">Total Amount</td>
+                            <td class="text-end fw-bold">₹{{ bill.total_amount }}</td>
+                        </tr>
+                        {% if bill.advance_payment > 0 %}
+                        <tr>
+                            <td colspan="4" class="text-end text-muted">Advance Paid ({{ bill.get_advance_payment_type_display|default:bill.get_payment_type_display }})</td>
+                            <td class="text-end text-muted">- ₹{{ bill.advance_payment }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold">
+                                {% if bill.payment_status == 'PAID' %}Balance Paid{% else %}Balance Due{% endif %}
+                            </td>
+                            <td class="text-end fw-bold {% if bill.payment_status == 'PAID' %}text-success{% else %}text-danger{% endif %}">
+                                ₹{{ bill.balance_due }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Footer -->
+            <div class="row mt-5">
+                <div class="col-6">
+                    <p class="fw-bold mb-1">Remarks:</p>
+                    <p class="text-muted small">{{ bill.remarks|default:"--" }}</p>
+                </div>
+                <div class="col-6 text-end mt-4">
+                    <p class="fw-bold mb-5">Authorized Signature</p>
+                    <p class="text-muted small">Generated by: {{ bill.created_by.username }}</p>
                 </div>
             </div>
         </div>
-
-        <!-- Footer -->
-        <div class="row mt-auto">
-            <div class="col-12">
-                <hr class="text-muted pb-3">
-            </div>
-            <div class="col-6">
-                <h6 class="fw-bold small">Remarks:</h6>
-                <p class="text-muted small">{{ bill.remarks|default:"--" }}</p>
-            </div>
-            <div class="col-6 text-end">
-                <div class="mb-2">
-                    <!-- Signature Image or Font -->
-                    <span class="text-muted small pt-3">This is a system generated bill</span>
-                </div>
-                <p class="text-muted small pt-2">Generated by: {{ bill.created_by.username }}</p>
-            </div>
-        </div>
-
     </div>
 
-    <!-- Print / Action Buttons -->
-    <div class="text-center mt-5 mb-5 d-print-none">
-        <button onclick="window.print()" class="btn btn-primary rounded-pill px-5 shadow-sm">
-            <i class="bi bi-printer me-2"></i> Print Invoice
+    <!-- Print Actions -->
+    <div class="text-center mt-4 mb-5 d-print-none">
+        <button onclick="window.print()" class="btn btn-primary btn-lg px-5">
+            <i class="bi bi-printer me-2"></i>Print Invoice
         </button>
-
+        
         {% has_bill_permission user bill 'edit' as can_edit %}
         {% if can_edit %}
-        <a href="{% url 'edit_bill' bill.id %}" class="btn btn-outline-dark btn-lg px-4 ms-2 rounded-pill">
+        <a href="{% url 'edit_bill' bill.id %}" class="btn btn-warning btn-lg px-4 ms-2">
             <i class="bi bi-pencil me-2"></i>Modify Invoice
         </a>
         {% endif %}
-
-        <a href="{% url 'billing_home' %}" class="btn btn-light rounded-pill px-4 ms-2 border">Back</a>
+        
+        <a href="{% url 'billing_home' %}" class="btn btn-light border btn-lg px-4 ms-2">Back</a>
     </div>
-
 </div>
 
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Dancing+Script:wght@400;700&display=swap');
-
-    body {
-        font-family: 'Inter', sans-serif;
-        background-color: #f0f2f5;
-        color: #333;
-    }
-
-    .font-inter {
-        font-family: 'Inter', sans-serif;
-    }
-
-    .invoice-card {
-        max-width: 800px;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        border: 1px solid #e9ecef;
-        position: relative;
-    }
-
-    /* Decoration - mimicking the subtle background curves if needed, simplified with border radius */
-
-    .logo-icon {
-        width: 60px;
-        height: 60px;
-        background-color: #aebcd6;
-        /* Light Blue-ish gray placeholder color from image */
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-    }
-
-    .logo-icon i {
-        color: #4a90e2 !important;
-        /* Icon Blue */
-    }
-
-    .text-primary {
-        color: #2c68c4 !important;
-        /* Specific Header Blue */
-    }
-
-    .invoice-details-box {
-        background-color: #f1f4f9;
-        border-radius: 4px;
-        border-left: 4px solid #dfe4ea;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-        /* Matching shadow */
-    }
-
-    .section-header {
-        background-color: #6c8caf !important;
-        /* The Blue Tab Color */
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-    }
-
-    .bg-light.detail-section {
-        background-color: #f1f4f9 !important;
-        border-left: 4px solid #dfe4ea;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-        /* Adding shadow as requested */
-    }
-
-    .table-light th {
-        background-color: #f1f4f9 !important;
-        color: #5a6b7c;
-        border-bottom: 0;
-        padding-top: 15px;
-        padding-bottom: 15px;
-    }
-
-    .custom-table td {
-        padding-top: 15px;
-        padding-bottom: 15px;
-        font-size: 0.95rem;
-    }
-
-    .signature-font {
-        font-family: 'Dancing Script', cursive;
-        color: #555;
-    }
-
     @media print {
-        body {
-            background-color: white;
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 100%;
-            padding: 0;
-            margin: 0;
-        }
-
-        .invoice-card {
-            box-shadow: none;
-            border: none;
-            /* Often outlines look bad on print */
-            border-radius: 0;
-            margin: 0 !important;
-            padding: 20px !important;
-        }
-
-        .d-print-none {
-            display: none !important;
-        }
-
-        /* Force backgrounds */
-        .section-header {
-            background-color: #6c8caf !important;
-            color: white !important;
-        }
-
-        .invoice-details-box,
-        .table-light th,
-        .bg-light {
-            background-color: #f1f4f9 !important;
-        }
-
-        /* Hide everything else */
         body * {
             visibility: hidden;
         }
@@ -323,6 +163,12 @@
             left: 0;
             top: 0;
             width: 100%;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .d-print-none {
+            display: none !important;
         }
     }
 </style>
