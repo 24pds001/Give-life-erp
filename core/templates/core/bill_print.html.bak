@@ -452,13 +452,9 @@
                     </tr>
                     <tr class="subtotal-row">
                         <td colspan="4" class="text-end">
-                            Advance Paid (
-                            {% if bill.get_advance_payment_type_display %}
-                            {{ bill.get_advance_payment_type_display }}
-                            {% else %}
-                            {{ bill.get_payment_type_display }}
-                            {% endif %}
-                            )
+                            Advance Paid ({% if bill.get_advance_payment_type_display %}{{
+                            bill.get_advance_payment_type_display }}{% else %}{{ bill.get_payment_type_display }}{%
+                            endif %})
                         </td>
                         <td class="text-end text-muted">- ₹{{ bill.advance_payment }}</td>
                     </tr>
