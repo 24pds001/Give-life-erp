@@ -5,516 +5,173 @@
 {% block title %}Invoice {{ bill.invoice_number }}{% endblock %}
 
 {% block content %}
-<style>
-    :root {
-        --primary-color: #2c5282;
-        /* Deep Blue */
-        --secondary-color: #f7fafc;
-        /* Light Gray */
-        --accent-color: #4299e1;
-        /* Lighter Blue */
-        --text-color: #2d3748;
-        --border-color: #e2e8f0;
-    }
-
-    body {
-        background-color: #edf2f7;
-        color: var(--text-color);
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
-
-    #invoice-card {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        max-width: 900px;
-        margin: 2rem auto;
-        border: 1px solid var(--border-color);
-    }
-
-    .bill-header {
-        padding: 2.5rem;
-        border-bottom: 2px solid var(--secondary-color);
-    }
-
-    .cafe-logo-area {
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-    }
-
-    .cafe-logo-cancel {
-        width: 80px;
-        height: 80px;
-        background: #e2e8f0;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 2rem;
-        color: var(--primary-color);
-    }
-
-    .cafe-details h1 {
-        font-size: 1.75rem;
-        color: #3182ce;
-        /* Bright Blue Title */
-        font-weight: 700;
-        margin-bottom: 0.25rem;
-    }
-
-    .cafe-details p {
-        color: #718096;
-        margin-bottom: 0.15rem;
-        font-size: 0.95rem;
-    }
-
-    .invoice-badge-container {
-        text-align: right;
-    }
-
-    .invoice-box {
-        background: #ebf8ff;
-        /* Light Blue Background */
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        display: inline-block;
-        min-width: 200px;
-        text-align: right;
-        border: 1px solid #bee3f8;
-    }
-
-    .invoice-title {
-        font-size: 1.1rem;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        color: #2b6cb0;
-        margin-bottom: 0.5rem;
-        text-transform: uppercase;
-    }
-
-    .invoice-detail {
-        font-size: 0.9rem;
-        margin-bottom: 0.25rem;
-        color: #4a5568;
-    }
-
-    .invoice-detail strong {
-        color: #2d3748;
-    }
-
-    .bill-section-header {
-        background-color: #6c8aa8;
-        /* Muted Blue for Headers */
-        color: white;
-        padding: 0.5rem 1rem;
-        font-weight: 600;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        border-top-left-radius: 6px;
-        border-top-right-radius: 12px;
-        clip-path: polygon(0 0, 95% 0, 100% 100%, 0% 100%);
-        width: fit-content;
-        min-width: 150px;
-        margin-bottom: 0.5rem;
-    }
-
-    .info-container {
-        padding: 0 2.5rem 2rem 2.5rem;
-    }
-
-    .info-box {
-        border: 1px solid var(--secondary-color);
-        padding: 1rem;
-        border-radius: 8px;
-        background: white;
-        height: 100%;
-    }
-
-    .customer-name {
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: #2d3748;
-        margin-bottom: 0.5rem;
-    }
-
-    .customer-info p {
-        color: #718096;
-        margin-bottom: 0.25rem;
-        font-size: 0.95rem;
-    }
-
-    .payment-info {
-        background: #f8fafc;
-        border-radius: 8px;
-        padding: 1rem;
-        border: 1px solid var(--border-color);
-        height: 100%;
-    }
-
-    .payment-header {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #718096;
-        text-transform: uppercase;
-        margin-bottom: 0.75rem;
-        border-bottom: 1px solid #e2e8f0;
-        padding-bottom: 0.5rem;
-        display: block;
-    }
-
-    .payment-row {
-        display: flex;
-        align-items: center;
-        margin-bottom: 0.5rem;
-        font-size: 0.95rem;
-    }
-
-    .payment-row i,
-    .payment-row svg {
-        color: #db9e36;
-        /* Icon color */
-        width: 20px;
-        margin-right: 0.5rem;
-    }
-
-    .payment-icon-blue {
-        color: #4299e1 !important;
-    }
-
-    .items-table-container {
-        padding: 0 2.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .custom-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-    }
-
-    .custom-table th {
-        background-color: #edf2f7;
-        color: #4a5568;
-        font-weight: 700;
-        text-transform: uppercase;
-        font-size: 0.8rem;
-        padding: 0.75rem 1rem;
-        border-bottom: 2px solid #cbd5e0;
-        text-align: left;
-    }
-
-    .custom-table th:first-child {
-        border-top-left-radius: 6px;
-    }
-
-    .custom-table th:last-child {
-        border-top-right-radius: 6px;
-        text-align: right;
-    }
-
-    .custom-table th.center {
-        text-align: center;
-    }
-
-    .custom-table td {
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid #e2e8f0;
-        color: #2d3748;
-        vertical-align: middle;
-    }
-
-    .custom-table td:last-child {
-        text-align: right;
-        font-weight: 600;
-    }
-
-    .custom-table td.center {
-        text-align: center;
-    }
-
-    .custom-table tbody tr:last-child td {
-        border-bottom: 2px solid #e2e8f0;
-    }
-
-    .total-row td {
-        background-color: #f7fafc;
-        font-weight: 700;
-        color: #2d3748;
-        border-bottom: none !important;
-        font-size: 1.1rem;
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-    }
-
-    .subtotal-row td {
-        border-bottom: none !important;
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
-        color: #718096;
-    }
-
-    .footer-section {
-        padding: 1rem 2.5rem 3rem 2.5rem;
-        margin-top: 1rem;
-    }
-
-    .remarks-box {
-        color: #4a5568;
-    }
-
-    .remarks-label {
-        font-weight: 700;
-        margin-bottom: 0.25rem;
-    }
-
-    .signature-box {
-        text-align: right;
-        padding-top: 2rem;
-    }
-
-    .signature-font {
-        font-family: 'Brush Script MT', cursive;
-        font-size: 1.5rem;
-        color: #2d3748;
-        margin-bottom: 0.5rem;
-    }
-
-    .generated-by {
-        font-size: 0.85rem;
-        color: #a0aec0;
-    }
-
-    /* Print Specifics */
-    @media print {
-        body {
-            background: white;
-            margin: 0;
-            padding: 0;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-
-        #invoice-card {
-            box-shadow: none;
-            border: none;
-            margin: 0;
-            max-width: 100%;
-            width: 100%;
-        }
-
-        .d-print-none {
-            display: none !important;
-        }
-
-        .bill-header,
-        .info-container,
-        .items-table-container,
-        .footer-section {
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-        }
-    }
-</style>
-
-<!-- Main Container -->
-<div class="container-fluid" style="min-height: 100vh;">
-    <div id="invoice-card">
-
-        <!-- Header -->
-        <div class="bill-header">
-            <div class="row align-items-center">
-                <div class="col-7">
-                    <div class="cafe-logo-area">
-                        <!-- Placeholder specific logo/icon if needed, using a generic cup icon here from Bootstrap Icons or similar if available, else CSS circle -->
-                        <!-- If user has image asset, we could use it. For now, matching the 'style' of the image with a graphic placeholder or just text -->
-                        <div class="cafe-logo-cancel d-none d-sm-flex">
-                            <i class="bi bi-cup-hot-fill"></i>
-                        </div>
-                        <div class="cafe-details">
-                            <h1>Loyola Give Life Cafe</h1>
-                            <p>Loyola College, Chennai-34.</p>
-                            <p>Email Id : givelife@loyolacollege.edu</p>
-                        </div>
-                    </div>
+<div class="container mt-4">
+    <div class="card shadow-sm border-0" id="invoice-card">
+        <div class="card-body p-5">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-6">
+                    <h2 class="fw-bold text-primary">Loyola Give Life Cafe</h2>
+                    <p class="text-muted mb-0">Loyola College, Chennai-34.</p>
+                    <p class="text-muted mb-0">Email Id : givelife@loyolacollege.edu</p>
                 </div>
-                <div class="col-5">
-                    <div class="invoice-badge-container">
-                        <div class="invoice-box">
-                            <div class="invoice-title">INVOICE</div>
-                            <div class="invoice-detail"><strong>Invoice No:</strong> {{ bill.invoice_number }}</div>
-                            <div class="invoice-detail"><strong>Date:</strong> {{ bill.created_at|date:"d M Y" }}</div>
-                            <div class="invoice-detail"><strong>Type:</strong> {{ bill.get_bill_type_display }}</div>
-                        </div>
-                    </div>
+                <div class="col-6 text-end">
+                    <h4 class="fw-bold">INVOICE</h4>
+                    <p class="mb-0"><strong>Invoice No:</strong> {{ bill.invoice_number }}</p>
+                    <p class="mb-0"><strong>Date:</strong> {{ bill.created_at|date:"d M Y" }}</p>
+                    <p class="mb-0"><strong>Type:</strong> {{ bill.get_bill_type_display }}</p>
                 </div>
             </div>
-        </div>
 
-        <!-- Info Grid -->
-        <div class="info-container">
-            <div class="row g-4">
-                <!-- Bill To Section -->
-                <div class="col-md-7">
-                    <div style="height: 100%;">
-                        <div class="bill-section-header">BILL TO</div>
-                        <div class="ps-2 pt-2 customer-info">
-                            {% if bill.customer %}
-                            <div class="customer-name">{{ bill.customer.customer_name }}</div>
-                            <p>{{ bill.customer.address|linebreaksbr }}</p>
-                            <p>{{ bill.customer.contact_number }}</p>
-                            {% else %}
-                            <div class="customer-name">{{ bill.customer_name }}</div>
-                            <p>{{ bill.customer_address|linebreaksbr }}</p>
-                            {% endif %}
+            <hr>
 
-                            {% if bill.outlet_name %}
-                            <p class="mt-2 text-dark"><strong>Outlet:</strong> {{ bill.get_outlet_name_display }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Payment Details Section -->
-                <div class="col-md-5">
-                    <div class="payment-info">
-                        <div class="payment-header">PAYMENT DETAILS</div>
-
-                        <div class="payment-row">
-                            <i class="bi bi-clock-history"></i>
-                            <span>Status: </span>
-                            <span
-                                class="ms-2 fw-bold {% if bill.payment_status == 'PAID' %}text-success{% else %}text-warning{% endif %}">
-                                {{ bill.get_payment_status_display }}
-                            </span>
-                        </div>
-
-                        <div class="payment-row align-items-start">
-                            <i class="bi bi-arrow-left-right payment-icon-blue"></i>
-                            <div>
-                                <span class="d-block mb-1">Mode:</span>
-                                <div class="fw-bold">
-                                    {% with payments=bill.payments.all %}
-                                    {% if payments %}
-                                    {% for p in payments %}
-                                    <div class="d-block">
-                                        {{ p.get_payment_type_display }}: ₹{{ p.amount }}
-                                    </div>
-                                    {% endfor %}
-                                    {% else %}
-                                    {{ bill.get_payment_type_display }}
-                                    {% endif %}
-                                    {% endwith %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Items Table -->
-        <div class="items-table-container">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th style="width: 50px;">#</th>
-                        <th>ITEM DESCRIPTION</th>
-                        <th class="center" style="width: 100px;">QTY</th>
-                        <th class="text-end" style="width: 120px;">PRICE</th>
-                        <th class="text-end" style="width: 120px;">TOTAL</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in bill.items.all %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>
-                            {% if item.item %}
-                            {{ item.item.name }}
-                            {% else %}
-                            {{ item.custom_item_name }}
-                            {% endif %}
-                        </td>
-                        <td class="center">{{ item.quantity }}</td>
-                        <td class="text-end">₹{{ item.price }}</td>
-                        <td class="text-end">₹{{ item.total }}</td>
-                    </tr>
-                    {% endfor %}
-
-                    <!-- Spacer Row if needed or just empty space handled by padding -->
-                </tbody>
-                <tfoot>
-                    {% if bill.advance_payment > 0 %}
-                    <tr class="subtotal-row">
-                        <td colspan="4" class="text-end">Total Amount</td>
-                        <td class="text-end">₹{{ bill.total_amount }}</td>
-                    </tr>
-                    <tr class="subtotal-row">
-                        <td colspan="4" class="text-end">
-                            Advance Paid (
-                            {% if bill.get_advance_payment_type_display %}
-                            {{ bill.get_advance_payment_type_display }}
-                            {% else %}
-                            {{ bill.get_payment_type_display }}
-                            {% endif %}
-                            )
-                        </td>
-                        <td class="text-end text-muted">- ₹{{ bill.advance_payment }}</td>
-                    </tr>
-                    <tr class="total-row">
-                        <td colspan="4" class="text-end">
-                            {% if bill.payment_status == 'PAID' %}Balance Paid{% else %}Balance Due{% endif %}
-                        </td>
-                        <td
-                            class="text-end {% if bill.payment_status == 'PAID' %}text-success{% else %}text-danger{% endif %}">
-                            ₹{{ bill.balance_due }}</td>
-                    </tr>
+            <!-- Customer & Bill Details -->
+            <div class="row mb-4">
+                <div class="col-6">
+                    <h6 class="fw-bold text-uppercase text-muted small">Bill To</h6>
+                    {% if bill.customer %}
+                    <h5 class="fw-bold mb-1">{{ bill.customer.customer_name }}</h5>
+                    <p class="text-muted mb-0">{{ bill.customer.address|linebreaksbr }}</p>
+                    <p class="text-muted mb-0">{{ bill.customer.contact_number }}</p>
                     {% else %}
-                    <tr class="total-row">
-                        <td colspan="4" class="text-end">Total</td>
-                        <td class="text-end">₹{{ bill.total_amount }}</td>
-                    </tr>
+                    <h5 class="fw-bold mb-1">{{ bill.customer_name }}</h5>
+                    <p class="text-muted mb-0">{{ bill.customer_address|linebreaksbr }}</p>
                     {% endif %}
-                </tfoot>
-            </table>
-        </div>
 
-        <!-- Footer -->
-        <div class="footer-section">
-            <hr class="mb-4" style="border-top: 1px solid #e2e8f0; opacity: 1;">
-            <div class="row">
-                <div class="col-6">
-                    <div class="remarks-box">
-                        <div class="remarks-label">Remarks:</div>
-                        <p class="small">{{ bill.remarks|default:"--" }}</p>
-                    </div>
+                    {% if bill.outlet_name %}
+                    <p class="mt-2"><strong>Outlet:</strong> {{ bill.get_outlet_name_display }}</p>
+                    {% endif %}
                 </div>
+                <div class="col-6 text-end">
+                    <h6 class="fw-bold text-uppercase text-muted small">Payment Details</h6>
+                    <p class="mb-0"><strong>Status:</strong>
+                        <span
+                            class="badge {% if bill.payment_status == 'PAID' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                            {{ bill.get_payment_status_display }}
+                        </span>
+                    </p>
+                    <p class="mb-0"><strong>Mode:</strong>
+                        {% with payments=bill.payments.all %}
+                        {% if payments %}
+                        {% for p in payments %}
+                        {{ p.get_payment_type_display }}: ₹{{ p.amount }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                        {% else %}
+                        {{ bill.get_payment_type_display }}
+                        {% endif %}
+                        {% endwith %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Item Description</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in bill.items.all %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                {% if item.item %}
+                                {{ item.item.name }}
+                                {% else %}
+                                {{ item.custom_item_name }}
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-end">₹{{ item.price }}</td>
+                            <td class="text-end">₹{{ item.total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold">Total Amount</td>
+                            <td class="text-end fw-bold">₹{{ bill.total_amount }}</td>
+                        </tr>
+                        {% if bill.advance_payment > 0 %}
+                        <tr>
+                            <td colspan="4" class="text-end text-muted">Advance Paid
+                                ({{bill.get_advance_payment_type_display|default:bill.get_payment_type_display }})</td>
+                            <td class="text-end text-muted">- ₹{{ bill.advance_payment }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold">
+                                {% if bill.payment_status == 'PAID' %}Balance Paid{% else %}Balance Due{% endif %}
+                            </td>
+                            <td
+                                class="text-end fw-bold {% if bill.payment_status == 'PAID' %}text-success{% else %}text-danger{% endif %}">
+                                ₹{{ bill.balance_due }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Footer -->
+            <div class="row mt-5">
                 <div class="col-6">
-                    <div class="signature-box">
-                        <div class="signature-font">Authorized Signature</div>
-                        <div class="generated-by">Generated by: {{ bill.created_by.username }}</div>
-                    </div>
+                    <p class="fw-bold mb-1">Remarks:</p>
+                    <p class="text-muted small">{{ bill.remarks|default:"--" }}</p>
+                </div>
+                <div class="col-6 text-end mt-4">
+                    <p class="fw-bold mb-5">Authorized Signature</p>
+                    <p class="text-muted small">Generated by: {{ bill.created_by.username }}</p>
                 </div>
             </div>
         </div>
-
     </div>
 
     <!-- Print Actions -->
     <div class="text-center mt-4 mb-5 d-print-none">
-        <button onclick="window.print()" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm">
+        <button onclick="window.print()" class="btn btn-primary btn-lg px-5">
             <i class="bi bi-printer me-2"></i>Print Invoice
         </button>
 
         {% has_bill_permission user bill 'edit' as can_edit %}
         {% if can_edit %}
-        <a href="{% url 'edit_bill' bill.id %}" class="btn btn-warning btn-lg px-4 ms-2 rounded-pill shadow-sm">
-            <i class="bi bi-pencil me-2"></i>Modify
+        <a href="{% url 'edit_bill' bill.id %}" class="btn btn-warning btn-lg px-4 ms-2">
+            <i class="bi bi-pencil me-2"></i>Modify Invoice
         </a>
         {% endif %}
 
-        <a href="{% url 'billing_home' %}" class="btn btn-light border btn-lg px-4 ms-2 rounded-pill shadow-sm">Back</a>
+        <a href="{% url 'billing_home' %}" class="btn btn-light border btn-lg px-4 ms-2">Back</a>
     </div>
 </div>
+
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+
+        #invoice-card,
+        #invoice-card * {
+            visibility: visible;
+        }
+
+        #invoice-card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .d-print-none {
+            display: none !important;
+        }
+    }
+</style>
 {% endblock %}
