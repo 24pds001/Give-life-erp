@@ -80,7 +80,7 @@ class BillForm(forms.ModelForm):
             'advance_payment_type': forms.Select(attrs={'class': 'form-select'}),
             'payment_status': forms.Select(attrs={'class': 'form-select'}),
             'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'delivery_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'delivery_date': forms.DateInput(format='%Y-%m-%d', attrs={'class': 'form-control', 'type': 'date'}),
             'student_employees': forms.SelectMultiple(attrs={'class': 'form-select', 'id': 'id_student_employees'}),
         }
 

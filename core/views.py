@@ -901,6 +901,23 @@ def edit_bill(request, pk):
                 form.add_error('delivery_date', f"Delivery Date is required for {type_label} Bills.")
                 valid = False
 
+        if not valid:
+            errors = []
+            if form.errors:
+                errors.append(f"Bill Errors: {form.errors.as_text()}")
+            if formset.errors:
+                 # formset.errors is a list of dicts
+                fs_errors = [e for e in formset.errors if e]
+                if fs_errors:
+                    errors.append(f"Item Errors: {fs_errors}")
+            if payment_formset.errors:
+                p_errors = [e for e in payment_formset.errors if e]
+                if p_errors:
+                    errors.append(f"Payment Errors: {p_errors}")
+            
+            error_msg = " | ".join(errors)
+            messages.error(request, f"Start of Errors: {error_msg}")
+            
         # Specific validation for Sales Bill (Mobile Shop)
         if bill.bill_type == 'SALES':
             outlet = form.cleaned_data.get('outlet_name')

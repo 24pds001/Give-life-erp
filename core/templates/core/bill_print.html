@@ -394,6 +394,7 @@
                                 </span>
                             </div>
 
+                            {% if bill.payment_status == 'PAID' or bill.advance_payment > 0 %}
                             <div class="payment-row align-items-start">
                                 <div>
                                     <span class="d-block mb-1">Mode:</span>
@@ -410,6 +411,7 @@
                                     </div>
                                 </div>
                             </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
