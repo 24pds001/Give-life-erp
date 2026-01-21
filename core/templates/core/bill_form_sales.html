@@ -286,6 +286,21 @@
         const customName = row.querySelector('input[name$="-custom_item_name"]');
         if (customName) customName.classList.add('form-control');
 
+        // Helper to toggle readonly
+        const togglePriceReadonly = () => {
+             if (!select || !price) return;
+             // If item is selected (value is truthy), make price read-only
+             if (select.value) {
+                 price.readOnly = true;
+                 price.classList.add('bg-light');
+                 price.setAttribute('tabindex', '-1'); 
+             } else {
+                 price.readOnly = false;
+                 price.classList.remove('bg-light');
+                 price.removeAttribute('tabindex');
+             }
+        };
+
         if (select && !select._attached) {
             select._attached = true;
             select.addEventListener('change', function () {
@@ -293,6 +308,7 @@
                 if (val && itemPrices[val]) {
                     if (price) price.value = itemPrices[val];
                 }
+                togglePriceReadonly();
                 recalcRow(row);
             });
         }
@@ -304,6 +320,9 @@
             price._attached = true;
             price.addEventListener('input', function () { recalcRow(row); });
         }
+        
+        // Initial check
+        togglePriceReadonly();
         
         if (deleteBtn && !deleteBtn._attached) {
             deleteBtn._attached = true;
