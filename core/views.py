@@ -13,6 +13,7 @@ from django.template.loader import render_to_string
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import csv
+import re
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from decimal import Decimal
 try:
@@ -888,9 +889,50 @@ def edit_bill(request, pk):
     if request.method == 'POST':
         form = BillForm(request.POST, instance=bill)
         formset = BillItemFormSet(request.POST, instance=bill)
-        payment_formset = BillPaymentFormSet(request.POST, instance=bill, prefix='payments')
-        
-        valid = form.is_valid() and formset.is_valid() and payment_formset.is_valid()
+        if bill.bill_type == 'SALES':
+            payment_formset = BillPaymentFormSet(request.POST, instance=bill, prefix='payments')
+            valid = form.is_valid() and formset.is_valid() and payment_formset.is_valid()
+        else:
+            payment_formset = None
+            valid = form.is_valid() and formset.is_valid()
+
+        # Recovery Logic: If ID errors exist, clear them and retry as new items
+        # This fixes "Select a valid choice" errors due to stale IDs
+        if not valid and formset.errors:
+             # Check if any error dict contains 'id'
+             has_id_error = any('id' in err for err in formset.errors)
+             if has_id_error:
+                  new_data = request.POST.copy()
+                  # Clear all field keys ending in -id that look like formset fields
+                  for key in list(new_data.keys()):
+                       # Matches typical formset pattern: prefix-index-id (e.g., billitem_set-0-id)
+                       if re.search(r'-\d+-id$', key):
+                            new_data[key] = ''
+
+                  # Calculate new total forms effectively (based on POST data length of ids or similar)
+                  # But actually, simply setting INITIAL_FORMS to 0 tells Django to ignore original instances.
+                  prefix = formset.prefix
+                  if f'{prefix}-INITIAL_FORMS' in new_data:
+                       new_data[f'{prefix}-INITIAL_FORMS'] = '0'
+                  
+                  # IMPORTANT: When treating as new items, we must NOT pass the instance, 
+                  # otherwise it tries to link them to existing items or complains about missing IDs for initial forms.
+                  # However, we DO want them to be linked to the bill upon save.
+                  # `save(commit=False)` will return instances with `bill` set if we pass instance?
+                  # Actually, standard pattern for "replace all" is:
+                  # 1. Delete old items (handled later in save code)
+                  # 2. Save new items. 
+                  # So we can init formset with instance=None (or empty queryset)
+                  
+                  formset = BillItemFormSet(new_data, instance=bill)
+                  # Override queryset to empty to prevent matching with existing DB rows
+                  formset.queryset = BillItem.objects.none()
+
+                  if bill.bill_type == 'SALES':
+                      payment_formset = BillPaymentFormSet(new_data, instance=bill, prefix='payments')
+                      valid = form.is_valid() and formset.is_valid() and payment_formset.is_valid()
+                  else:
+                      valid = form.is_valid() and formset.is_valid()
 
         if bill.bill_type in ['INNER', 'OUTER']:
             type_label = "Inner" if bill.bill_type == 'INNER' else "Outer"
@@ -905,16 +947,28 @@ def edit_bill(request, pk):
             errors = []
             if form.errors:
                 errors.append(f"Bill Errors: {form.errors.as_text()}")
+            if form.non_field_errors():
+                errors.append(f"Bill Non-Field Errors: {form.non_field_errors()}")
+            
             if formset.errors:
                  # formset.errors is a list of dicts
                 fs_errors = [e for e in formset.errors if e]
                 if fs_errors:
                     errors.append(f"Item Errors: {fs_errors}")
-            if payment_formset.errors:
-                p_errors = [e for e in payment_formset.errors if e]
-                if p_errors:
-                    errors.append(f"Payment Errors: {p_errors}")
+            if formset.non_form_errors():
+                errors.append(f"Item Group Errors: {formset.non_form_errors()}")
+
+            if payment_formset:
+                if payment_formset.errors:
+                    p_errors = [e for e in payment_formset.errors if e]
+                    if p_errors:
+                        errors.append(f"Payment Errors: {p_errors}")
+                if payment_formset.non_form_errors():
+                    errors.append(f"Payment Group Errors: {payment_formset.non_form_errors()}")
             
+            if not errors:
+                errors.append("Unknown Validation Error. Please check all fields.")
+
             error_msg = " | ".join(errors)
             messages.error(request, f"Start of Errors: {error_msg}")
             
@@ -1041,12 +1095,13 @@ def edit_bill(request, pk):
             bill.save()
             
             # Save payments
-            payments = payment_formset.save(commit=False)
-            for payment in payments:
-                payment.bill = bill
-                payment.save()
-            for obj in payment_formset.deleted_objects:
-                obj.delete()
+            if payment_formset:
+                payments = payment_formset.save(commit=False)
+                for payment in payments:
+                    payment.bill = bill
+                    payment.save()
+                for obj in payment_formset.deleted_objects:
+                    obj.delete()
 
             messages.success(request, 'Bill updated successfully')
             return redirect('bill_detail', pk=bill.id)
