@@ -118,7 +118,7 @@ class BillItemForm(forms.ModelForm):
 
         if not item and not custom_item_name:
              if price and price > 0: # Only if trying to add an item
-                 raise forms.ValidationError("Custom Item Name is required if no standard item is selected.")
+                 self.add_error('custom_item_name', "Custom Item Name is required if no standard item is selected.")
         return cleaned_data
 
 BillItemFormSet = inlineformset_factory(
