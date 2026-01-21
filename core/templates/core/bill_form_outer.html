@@ -361,6 +361,26 @@
                     visibleRows++;
                     const qtyInput = row.querySelector('.qty-input');
                     const qty = parseFloat(qtyInput.value) || 0;
+                    
+                    // Custom Item Validation
+                    const itemSelect = row.querySelector('.item-selector');
+                    const customNameInput = row.querySelector('input[name$="-custom_item_name"]');
+                    const priceInput = row.querySelector('.price-input');
+                    
+                    const itemVal = itemSelect ? itemSelect.value : '';
+                    const priceVal = priceInput ? (parseFloat(priceInput.value) || 0) : 0;
+                    const customNameVal = customNameInput ? customNameInput.value.trim() : '';
+
+                    if (priceVal > 0) {
+                         if (!itemVal && !customNameVal) {
+                              errors.push("Custom Item Name is required if no standard item is selected.");
+                              if(customNameInput) {
+                                  customNameInput.classList.add('is-invalid');
+                                  customNameInput.addEventListener('input', () => customNameInput.classList.remove('is-invalid'), {once: true});
+                              }
+                         }
+                    }
+
                     if (qty <= 0) {
                         errors.push("Quantity must be greater than 0 for all items.");
                     } else {

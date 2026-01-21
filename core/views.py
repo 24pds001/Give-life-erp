@@ -951,26 +951,47 @@ def edit_bill(request, pk):
                 errors.append(f"Bill Non-Field Errors: {form.non_field_errors()}")
             
             if formset.errors:
-                 # formset.errors is a list of dicts
-                fs_errors = [e for e in formset.errors if e]
+                 # formset.errors is a list of dicts. We want to extract 'Custom Item Name...' cleanly
+                fs_errors = []
+                for i, err_dict in enumerate(formset.errors):
+                    if not err_dict: continue
+                    # Handle __all__ errors
+                    if '__all__' in err_dict:
+                        for err in err_dict['__all__']:
+                             fs_errors.append(f"Item #{i+1}: {err}")
+                    # Handle field errors
+                    for field, err_list in err_dict.items():
+                        if field == '__all__': continue
+                        for err in err_list:
+                            fs_errors.append(f"Item #{i+1} ({field}): {err}")
+                
                 if fs_errors:
-                    errors.append(f"Item Errors: {fs_errors}")
+                    errors.extend(fs_errors)
+            
             if formset.non_form_errors():
-                errors.append(f"Item Group Errors: {formset.non_form_errors()}")
+                errors.append(f"Item Group Errors: {formset.non_form_errors().as_text()}")
 
             if payment_formset:
                 if payment_formset.errors:
-                    p_errors = [e for e in payment_formset.errors if e]
+                    p_errors = []
+                    for i, err_dict in enumerate(payment_formset.errors):
+                        if not err_dict: continue
+                        for field, err_list in err_dict.items():
+                             for err in err_list:
+                                  p_errors.append(f"Payment #{i+1} ({field}): {err}")
+                    
                     if p_errors:
-                        errors.append(f"Payment Errors: {p_errors}")
+                        errors.extend(p_errors)
                 if payment_formset.non_form_errors():
-                    errors.append(f"Payment Group Errors: {payment_formset.non_form_errors()}")
+                    errors.append(f"Payment Group Errors: {payment_formset.non_form_errors().as_text()}")
             
             if not errors:
-                errors.append("Unknown Validation Error. Please check all fields.")
+                errors.append("Validation failed. Please check the highlighted fields.")
 
+            # Create a clean HTML list for messages (using <br> or just newlines)
+            # Since we removed the popup, we can just join them nicely.
             error_msg = " | ".join(errors)
-            messages.error(request, f"Start of Errors: {error_msg}")
+            messages.error(request, error_msg)
             
         # Specific validation for Sales Bill (Mobile Shop)
         if bill.bill_type == 'SALES':

@@ -110,6 +110,17 @@ class BillItemForm(forms.ModelForm):
             'price': forms.NumberInput(attrs={'class': 'form-control price-input'}),
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+        item = cleaned_data.get('item')
+        custom_item_name = cleaned_data.get('custom_item_name')
+        price = cleaned_data.get('price')
+
+        if not item and not custom_item_name:
+             if price and price > 0: # Only if trying to add an item
+                 raise forms.ValidationError("Custom Item Name is required if no standard item is selected.")
+        return cleaned_data
+
 BillItemFormSet = inlineformset_factory(
     Bill, BillItem, form=BillItemForm, extra=1, can_delete=True
 )
