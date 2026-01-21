@@ -401,19 +401,45 @@
             errors.push("Grand Total must be greater than 0.");
         }
 
-        // 4. Validate Advance Payment (Outer Bills)
+        // 4. Validate Payments (Outer Bills)
         const paymentStatus = document.getElementById('id_payment_status');
         const advanceInput = document.getElementById('id_advance_payment');
+        const advanceTypeInput = document.getElementById('id_advance_payment_type');
+        const paymentTypeInput = document.getElementById('id_payment_type');
         
-        if (paymentStatus && paymentStatus.value === 'PENDING' && advanceInput) {
+        if (paymentStatus && advanceInput) {
              const advance = parseFloat(advanceInput.value) || 0;
-             const totalText = document.getElementById('grand-total').textContent.replace('₹ ', '');
-             const grandTotal = parseFloat(totalText) || 0;
+             const status = paymentStatus.value;
+             // Remove commas if present in totalText before parsing? Python style usually safe, but JS parseFloat stops at comma.
+             // Assuming simple number format.
 
+             // Rule 1: Advance Amount <= Total Bill Amount
+             if (advance > grandTotal) {
+                  errors.push("Advance payment cannot be greater than the Total Bill Amount.");
+             }
              if (advance < 0) {
-                 errors.push("Advance payment cannot be negative.");
-             } else if (advance >= grandTotal && grandTotal > 0) {
-                 errors.push("Advance payment must be less than Total Amount for pending bills. Please mark as PAID or reduce advance amount.");
+                  errors.push("Advance payment cannot be negative.");
+             }
+
+             // Rule 2: If Advance > 0, Advance Type Mandatory
+             if (advance > 0) {
+                 if (!advanceTypeInput || !advanceTypeInput.value) {
+                     errors.push("Advance Payment Type is required when Advance Payment is provided.");
+                 }
+             }
+
+             // Rule 3: If Status is PAID, Payment Type Mandatory
+             if (status === 'PAID') {
+                 if (!paymentTypeInput || !paymentTypeInput.value) {
+                     errors.push("Payment Type is required when Payment Status is PAID.");
+                 }
+             }
+             
+             // PENDING Validation check (Legacy/Redundant but safety)
+             if (status === 'PENDING' && advance >= grandTotal && grandTotal > 0) {
+                 // Warn or Error? User said "Advance amount should be less than or equal to".
+                 // If equal, it's effectively paid.
+                 // We won't block equality, but the strictly greater check above covers the error.
              }
         }
         

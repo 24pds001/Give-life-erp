@@ -84,6 +84,21 @@ class BillForm(forms.ModelForm):
             'student_employees': forms.SelectMultiple(attrs={'class': 'form-select', 'id': 'id_student_employees'}),
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+        pay_status = cleaned_data.get('payment_status')
+        pay_type = cleaned_data.get('payment_type')
+        advance = cleaned_data.get('advance_payment') or 0
+        advance_type = cleaned_data.get('advance_payment_type')
+
+        if pay_status == 'PAID' and not pay_type:
+            self.add_error('payment_type', "Payment Type is required for PAID bills.")
+        
+        if advance > 0 and not advance_type:
+            self.add_error('advance_payment_type', "Advance Payment Type is required when an Advance Amount is entered.")
+            
+        return cleaned_data
+
 class BillPaymentForm(forms.ModelForm):
     class Meta:
         model = BillPayment

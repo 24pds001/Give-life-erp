@@ -1051,6 +1051,57 @@ def edit_bill(request, pk):
                     'editing': True,
                 })
 
+            # 2.6 Validation: Advance Payment for OUTER bills (Edit Mode)
+            if bill.bill_type == 'OUTER':
+                payment_status = form.cleaned_data.get('payment_status')
+                advance_payment = form.cleaned_data.get('advance_payment') or Decimal('0')
+                
+                grand_total = Decimal('0')
+                for v in aggregated.values():
+                    grand_total += v['price'] * v['quantity']
+                
+                if advance_payment < 0:
+                     form.add_error('advance_payment', "Advance payment cannot be negative.")
+                     items = Item.objects.all()
+                     items_mapping = {item.id: str(item.price) for item in items}
+                     return render(request, template_name, {
+                        'form': form,
+                        'formset': formset,
+                        'payment_formset': payment_formset,
+                        'bill_type': bill.bill_type,
+                        'items': items,
+                        'items_json': json.dumps(items_mapping),
+                        'editing': True,
+                    })
+
+                if advance_payment > grand_total:
+                     form.add_error('advance_payment', f"Advance payment ({advance_payment}) cannot be greater than Total Amount ({grand_total}).")
+                     items = Item.objects.all()
+                     items_mapping = {item.id: str(item.price) for item in items}
+                     return render(request, template_name, {
+                        'form': form,
+                        'formset': formset,
+                        'payment_formset': payment_formset,
+                        'bill_type': bill.bill_type,
+                        'items': items,
+                        'items_json': json.dumps(items_mapping),
+                        'editing': True,
+                    })
+                
+                if payment_status == 'PENDING' and advance_payment == grand_total and grand_total > 0:
+                     form.add_error('advance_payment', "Advance payment equals Total Amount. Please change status to PAID.")
+                     items = Item.objects.all()
+                     items_mapping = {item.id: str(item.price) for item in items}
+                     return render(request, template_name, {
+                        'form': form,
+                        'formset': formset,
+                        'payment_formset': payment_formset,
+                        'bill_type': bill.bill_type,
+                        'items': items,
+                        'items_json': json.dumps(items_mapping),
+                        'editing': True,
+                    })
+
             # 2.5 Validation: Total Paid must match Grand Total for SALES bills (Only if PAID)
             if bill.bill_type == 'SALES':
                 payment_status = form.cleaned_data.get('payment_status')
