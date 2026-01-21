@@ -659,31 +659,44 @@ def create_bill(request, bill_type):
                 for v in aggregated.values():
                     grand_total += v['price'] * v['quantity']
                 
-                if payment_status == 'PENDING':
-                    if advance_payment < 0:
-                         form.add_error('advance_payment', "Advance payment cannot be negative.")
-                         items = Item.objects.all()
-                         items_mapping = {item.id: str(item.price) for item in items}
-                         return render(request, template_name, {
-                            'form': form,
-                            'formset': formset,
-                            'payment_formset': payment_formset,
-                            'bill_type': bill_type,
-                            'items': items,
-                            'items_json': json.dumps(items_mapping)
-                        })
-                    elif advance_payment >= grand_total:
-                         form.add_error('advance_payment', "Advance payment must be less than Total Amount for pending bills. Please mark as PAID or reduce advance amount.")
-                         items = Item.objects.all()
-                         items_mapping = {item.id: str(item.price) for item in items}
-                         return render(request, template_name, {
-                            'form': form,
-                            'formset': formset,
-                            'payment_formset': payment_formset,
-                            'bill_type': bill_type,
-                            'items': items,
-                            'items_json': json.dumps(items_mapping)
-                        })
+                if advance_payment < 0:
+                     form.add_error('advance_payment', "Advance payment cannot be negative.")
+                     items = Item.objects.all()
+                     items_mapping = {item.id: str(item.price) for item in items}
+                     return render(request, template_name, {
+                        'form': form,
+                        'formset': formset,
+                        'payment_formset': payment_formset,
+                        'bill_type': bill_type,
+                        'items': items,
+                        'items_json': json.dumps(items_mapping)
+                    })
+
+                if advance_payment > grand_total:
+                     form.add_error('advance_payment', f"Advance payment ({advance_payment}) cannot be greater than Total Amount ({grand_total}).")
+                     items = Item.objects.all()
+                     items_mapping = {item.id: str(item.price) for item in items}
+                     return render(request, template_name, {
+                        'form': form,
+                        'formset': formset,
+                        'payment_formset': payment_formset,
+                        'bill_type': bill_type,
+                        'items': items,
+                        'items_json': json.dumps(items_mapping)
+                    })
+                
+                if payment_status == 'PENDING' and advance_payment == grand_total and grand_total > 0:
+                     form.add_error('advance_payment', "Advance payment equals Total Amount. Please change status to PAID.")
+                     items = Item.objects.all()
+                     items_mapping = {item.id: str(item.price) for item in items}
+                     return render(request, template_name, {
+                        'form': form,
+                        'formset': formset,
+                        'payment_formset': payment_formset,
+                        'bill_type': bill_type,
+                        'items': items,
+                        'items_json': json.dumps(items_mapping)
+                    })
 
             # 3. Save Bill and Items
             bill = form.save(commit=False)
