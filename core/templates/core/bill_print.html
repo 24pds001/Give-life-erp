@@ -299,17 +299,17 @@
         }
 
         /* Hide Sidebar, Navbar, and other non-print elements from base.html */
-        .sidebar, 
-        .navbar, 
-        .btn, 
-        .d-print-none, 
-        #sidebarToggle, 
+        .sidebar,
+        .navbar,
+        .btn,
+        .d-print-none,
+        #sidebarToggle,
         .dropdown {
             display: none !important;
         }
 
         /* Reset Main Content wrappers */
-        .wrapper, 
+        .wrapper,
         .main-content {
             margin: 0 !important;
             padding: 0 !important;
@@ -346,7 +346,7 @@
             font-size: 1.25rem !important;
             color: #000 !important;
         }
-        
+
         .cafe-details p {
             color: #333 !important;
             font-size: 0.8rem !important;
@@ -355,7 +355,7 @@
         .info-container {
             padding: 1rem !important;
         }
-        
+
         .common-box {
             border: 1px solid #ccc !important;
             background: white !important;
@@ -385,8 +385,9 @@
             padding: 0.35rem !important;
             font-size: 8.5pt !important;
         }
-        
-        .total-row td, .subtotal-row td {
+
+        .total-row td,
+        .subtotal-row td {
             padding-top: 0.15rem !important;
             padding-bottom: 0.15rem !important;
         }
@@ -395,7 +396,7 @@
             padding: 0.25rem 1rem 0.5rem 1rem !important;
             margin-top: 0 !important;
         }
-        
+
         .signature-box {
             padding-top: 0.5rem !important;
         }
@@ -405,7 +406,7 @@
             font-size: 14pt !important;
             margin-bottom: 0 !important;
         }
-        
+
         .cafe-details p {
             font-size: 8pt !important;
         }
@@ -476,7 +477,7 @@
             <div class="row g-4">
                 <!-- Bill To Section -->
                 <div class="col-7">
-                    <div class="common-box h-100">
+                    <div class="common-box h-75">
                         <div class="common-header-tab">BILL TO</div>
                         <div class="common-box-content">
                             <div class="customer-info">
@@ -514,21 +515,19 @@
                             </div>
 
                             {% if bill.payment_status == 'PAID' or bill.advance_payment > 0 %}
-                            <div class="payment-row align-items-start">
-                                <div>
-                                    <span class="d-block mb-1">Mode:</span>
-                                    <div class="fw-bold">
-                                        {% with payments=bill.payments.all %}
-                                        {% if payments %}
-                                        {% for p in payments %}
-                                        <div class="d-block">{{ p.get_payment_type_display }}: ₹{{ p.amount }}</div>
-                                        {% endfor %}
-                                        {% else %}
-                                        {{ bill.get_payment_type_display }}
-                                        {% endif %}
-                                        {% endwith %}
-                                    </div>
-                                </div>
+                            <div class="payment-row">
+                                <span>Mode: </span>
+                                <span class="ms-2 fw-bold">
+                                    {% with payments=bill.payments.all %}
+                                    {% if payments %}
+                                    {% for p in payments %}
+                                    <span>{{ p.get_payment_type_display }}: ₹{{ p.amount }}{% if not forloop.last %}, {% endif %}</span>
+                                    {% endfor %}
+                                    {% else %}
+                                    {{ bill.get_payment_type_display }}
+                                    {% endif %}
+                                    {% endwith %}
+                                </span>
                             </div>
                             {% endif %}
                         </div>
@@ -627,7 +626,7 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             var now = new Date();
             var options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
             document.getElementById('print-time-display').textContent = now.toLocaleDateString('en-US', options);
