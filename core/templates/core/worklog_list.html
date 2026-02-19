@@ -60,13 +60,14 @@
                     {% endif %}
                 </td>
                 <td>
-                    {% if log.status == 'PENDING' and user.role == 'ACCOUNTANT' or user.is_supervisor_or_admin %}
-                    <form method="post" action="{% url 'approve_worklog' log.pk %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" name="action" value="approve"
-                            class="btn btn-sm btn-success">Approve</button>
-                        <button type="submit" name="action" value="reject" class="btn btn-sm btn-danger">Reject</button>
-                    </form>
+                    {% if log.status == 'PENDING' %}
+                        {% if user.role == 'ACCOUNTANT' or user.is_supervisor_or_admin %}
+                        <form method="post" action="{% url 'approve_worklog' log.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" name="action" value="approve" class="btn btn-sm btn-success">Approve</button>
+                            <button type="submit" name="action" value="reject" class="btn btn-sm btn-danger">Reject</button>
+                        </form>
+                        {% endif %}
                     {% endif %}
                 </td>
             </tr>
