@@ -195,20 +195,25 @@ class Bill(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:
+            today_str = timezone.now().strftime('%Y%m%d')
             prefix_map = {'INNER': 'IB', 'OUTER': 'OB', 'SALES': 'SB'}
             prefix = prefix_map.get(self.bill_type, 'INV')
-            last_bill = Bill.objects.filter(bill_type=self.bill_type).order_by('id').last()
-            # Simple increment logic, might need better concurrency handling in production
-            # extracting number from last invoice if possible, else count + 1
-            if last_bill and last_bill.invoice_number.startswith(prefix):
+            base_id = f"{prefix}-{today_str}"
+            
+            # Find last bill with this prefix and date
+            last_bill = Bill.objects.filter(invoice_number__startswith=base_id).order_by('invoice_number').last()
+            
+            if last_bill:
                 try:
-                    last_num = int(last_bill.invoice_number.split('-')[-1])
-                    new_id = last_num + 1
+                    # Extract sequence number (last 4 digits)
+                    last_seq = int(last_bill.invoice_number[-4:])
+                    new_seq = last_seq + 1
                 except ValueError:
-                    new_id = Bill.objects.count() + 1
+                    new_seq = 1
             else:
-                new_id = 1
-            self.invoice_number = f"{prefix}-{new_id:04d}"
+                new_seq = 1
+            
+            self.invoice_number = f"{base_id}{new_seq:04d}"
         super().save(*args, **kwargs)
 
 class BillPayment(models.Model):
@@ -322,16 +327,24 @@ class PurchaseRecord(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.purchase_order_id:
-            last_po = PurchaseRecord.objects.all().order_by('id').last()
-            if last_po and last_po.purchase_order_id.startswith('PO-'):
+            today_str = timezone.now().strftime('%Y%m%d')
+            prefix = "PO"
+            base_id = f"{prefix}-{today_str}"
+            
+            # Find last PO with this prefix and date
+            last_po = PurchaseRecord.objects.filter(purchase_order_id__startswith=base_id).order_by('purchase_order_id').last()
+            
+            if last_po:
                 try:
-                    last_num = int(last_po.purchase_order_id.split('-')[-1])
-                    new_id = last_num + 1
+                    # Extract sequence number (last 4 digits)
+                    last_seq = int(last_po.purchase_order_id[-4:])
+                    new_seq = last_seq + 1
                 except ValueError:
-                    new_id = PurchaseRecord.objects.count() + 1
+                    new_seq = 1
             else:
-                new_id = 1
-            self.purchase_order_id = f"PO-{new_id:04d}"
+                new_seq = 1
+            
+            self.purchase_order_id = f"{base_id}{new_seq:04d}"
         super().save(*args, **kwargs)
 
 class PurchaseItem(models.Model):
