@@ -1,93 +1,206 @@
 {% extends 'core/base.html' %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Attendance Logs</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <h1 class="h2"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Attendance Logs</h1>
+    <div class="btn-toolbar mb-2 mb-md-0 d-flex align-items-center">
         {% if current_attendance %}
+        <div class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 py-2 px-3 me-3 d-flex align-items-center shadow-sm">
+            <i class="bi bi-clock-history me-2"></i> Clocked in at {{ current_attendance.in_time }}
+        </div>
         <form method="post" action="{% url 'clock_out' %}" class="me-2">
             {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-danger">
-                <i class="bi bi-box-arrow-right"></i> Clock Out
+            <button type="submit" class="btn btn-sm btn-danger shadow-sm" style="box-shadow: 0 2px 4px rgba(220, 53, 69, 0.15);">
+                <i class="bi bi-box-arrow-right me-1"></i> Clock Out
             </button>
         </form>
-        <span class="navbar-text me-3">
-            Clocked in at {{ current_attendance.in_time }}
-        </span>
         {% else %}
-        <form method="post" action="{% url 'clock_in' %}">
+        <form method="post" action="{% url 'clock_in' %}" class="me-2">
             {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-success">
-                <i class="bi bi-box-arrow-in-right"></i> Clock In
+            <button type="submit" class="btn btn-sm btn-success shadow-sm" style="box-shadow: 0 2px 4px rgba(25, 135, 84, 0.15);">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Clock In
             </button>
         </form>
         {% endif %}
 
         {% if user.role == 'ACCOUNTANT' or user.is_supervisor_or_admin %}
-        <a href="{% url 'approve_attendance' %}" class="btn btn-sm btn-outline-primary ms-2">
-            <i class="bi bi-check-circle"></i> Approvals
+        <a href="{% url 'approve_attendance' %}" class="btn btn-sm btn-outline-primary ms-2 shadow-sm rounded-pill px-3">
+            <i class="bi bi-check-circle me-1"></i> Approvals
         </a>
         {% endif %}
     </div>
 </div>
 
-<div class="card mb-3">
+<div class="card shadow-sm border-0 mb-4 bg-light bg-opacity-50">
     <div class="card-body">
         <form method="get" class="row g-3 align-items-end">
             <div class="col-md-3">
-                <label for="start_date" class="form-label">Start Date</label>
-                <input type="date" class="form-control" id="start_date" name="start_date"
-                    value="{{ filter_start_date|default:'' }}">
+                <label for="start_date" class="form-label text-muted small fw-bold text-uppercase mb-1">Start Date</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar text-muted"></i></span>
+                    <input type="date" class="form-control border-start-0 ps-0" id="start_date" name="start_date"
+                        value="{{ filter_start_date|default:'' }}">
+                </div>
             </div>
             <div class="col-md-3">
-                <label for="end_date" class="form-label">End Date</label>
-                <input type="date" class="form-control" id="end_date" name="end_date"
-                    value="{{ filter_end_date|default:'' }}">
+                <label for="end_date" class="form-label text-muted small fw-bold text-uppercase mb-1">End Date</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar text-muted"></i></span>
+                    <input type="date" class="form-control border-start-0 ps-0" id="end_date" name="end_date"
+                        value="{{ filter_end_date|default:'' }}">
+                </div>
             </div>
             {% if users %}
             <div class="col-md-3">
-                <label for="user_id" class="form-label">Employee</label>
-                <select class="form-select" id="user_id" name="user_id">
-                    <option value="">All Employees</option>
-                    {% for u in users %}
-                    <option value="{{ u.id }}" {% if filter_user_id == u.id|stringformat:"s" %}selected{% endif %}>{{
-                        u.username }}</option>
-                    {% endfor %}
-                </select>
+                <label for="user_id" class="form-label text-muted small fw-bold text-uppercase mb-1">Employee</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-person text-muted"></i></span>
+                    <select class="form-select border-start-0 ps-0 text-secondary" id="user_id" name="user_id">
+                        <option value="">All Employees</option>
+                        {% for u in users %}
+                        <option value="{{ u.id }}" {% if filter_user_id == u.id|stringformat:"s" %}selected{% endif %}>{{ u.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
             {% endif %}
             <div class="col-md-3">
-                <button type="submit" class="btn btn-primary">Filter</button>
-                <a href="{% url 'attendance_list' %}" class="btn btn-outline-secondary">Clear</a>
+                <button type="submit" class="btn btn-sm btn-primary shadow-sm px-3 me-2">Filter</button>
+                <a href="{% url 'attendance_list' %}" class="btn btn-sm btn-outline-secondary px-3">Clear</a>
             </div>
         </form>
     </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-header">
-        <h5 class="mb-0">Today's Student Work Logs</h5>
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center">
+                <i class="bi bi-journal-check text-primary me-2"></i>
+                <h6 class="mb-0 fw-bold">Today's Student Work Logs</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4 border-0 text-muted fw-semibold small text-uppercase">Student Name</th>
+                                <th class="border-0 text-muted fw-semibold small text-uppercase text-center">Entry Time</th>
+                                <th class="border-0 text-muted fw-semibold small text-uppercase text-center">Exit Time</th>
+                            </tr>
+                        </thead>
+                        <tbody class="border-top-0">
+                            {% for log in todays_student_logs %}
+                            <tr>
+                                <td class="ps-4 fw-medium text-dark">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                                            {{ log.student.username|make_list|first|upper }}
+                                        </div>
+                                        <span>{{ log.student.username }}</span>
+                                    </div>
+                                </td>
+                                <td class="text-center text-secondary">
+                                    {% if log.entry_time %}
+                                        <span class="badge bg-light text-dark border"><i class="bi bi-box-arrow-in-right me-1 text-primary"></i>{{ log.entry_time|time:"H:i" }}</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="text-center text-secondary">
+                                    {% if log.exit_time %}
+                                        <span class="badge bg-light text-dark border"><i class="bi bi-box-arrow-left me-1 text-danger"></i>{{ log.exit_time|time:"H:i" }}</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4 text-muted small">
+                                    <i class="bi bi-journal-x fs-4 d-block mb-1 opacity-50"></i>
+                                    No student work logs started today.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="card-body">
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center">
+        <i class="bi bi-list-ul text-primary me-2"></i>
+        <h6 class="mb-0 fw-bold">All Attendance Records</h6>
+    </div>
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-sm table-bordered">
-                <thead>
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light border-bottom">
                     <tr>
-                        <th>Student Name</th>
-                        <th>Entry Time</th>
-                        <th>Exit Time</th>
+                        <th class="ps-4 border-0 text-muted fw-semibold small text-uppercase">Date</th>
+                        <th class="border-0 text-muted fw-semibold small text-uppercase">Employee</th>
+                        <th class="border-0 text-muted fw-semibold small text-uppercase text-center">In Time</th>
+                        <th class="border-0 text-muted fw-semibold small text-uppercase text-center">Out Time</th>
+                        <th class="border-0 text-muted fw-semibold small text-uppercase text-center">Total Hours</th>
+                        <th class="border-0 text-muted fw-semibold small text-uppercase pe-4">Status</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {% for log in todays_student_logs %}
+                <tbody class="border-top-0">
+                    {% for log in logs %}
                     <tr>
-                        <td>{{ log.student.username }}</td>
-                        <td>{{ log.entry_time|default:"-" }}</td>
-                        <td>{{ log.exit_time|default:"-" }}</td>
+                        <td class="ps-4 fw-medium text-secondary">{{ log.date|date:"d M, Y" }}</td>
+                        <td class="fw-medium text-dark">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 32px; height: 32px; font-size: 0.85rem;">
+                                    {{ log.user.username|make_list|first|upper }}
+                                </div>
+                                <span>{{ log.user.username }}</span>
+                            </div>
+                        </td>
+                        <td class="text-center text-secondary">
+                            {% if log.in_time %}
+                                <span class="badge bg-light text-dark border"><i class="bi bi-box-arrow-in-right me-1 text-success"></i>{{ log.in_time|time:"H:i" }}</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="text-center text-secondary">
+                            {% if log.out_time %}
+                                <span class="badge bg-light text-dark border"><i class="bi bi-box-arrow-left me-1 text-danger"></i>{{ log.out_time|time:"H:i" }}</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="text-center fw-medium text-secondary">
+                            {% if log.total_hours %}
+                                {{ log.total_hours|floatformat:2 }} <span class="text-muted fw-normal" style="font-size: 0.8rem;">hrs</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="pe-4">
+                            {% if log.is_approved %}
+                            <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Approved</span>
+                            {% else %}
+                            <span class="badge rounded-pill bg-warning bg-opacity-10 text-dark border border-warning border-opacity-25 px-2 py-1"><i class="bi bi-hourglass-split me-1 text-warning"></i>Pending</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="3" class="text-center text-muted">No student work logs started today.</td>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <div class="d-flex flex-column align-items-center">
+                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                                    <i class="bi bi-person-x fs-3 text-secondary opacity-50"></i>
+                                </div>
+                                <h5 class="fw-normal text-secondary">No attendance logs found.</h5>
+                                <p class="mb-0 text-muted small">Try adjusting your filters.</p>
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -96,65 +209,25 @@
     </div>
 </div>
 
-<div class="table-responsive">
-    <table class="table table-striped table-sm">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Employee</th>
-                <th>In Time</th>
-                <th>Out Time</th>
-                <th>Total Hours</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for log in logs %}
-            <tr>
-                <td>{{ log.date }}</td>
-                <td>{{ log.user.username }}</td>
-                <td>{{ log.in_time }}</td>
-                <td>{{ log.out_time|default:"-" }}</td>
-                <td>{{ log.total_hours|default:"-" }}</td>
-                <td>
-                    {% if log.is_approved %}
-                    <span class="badge bg-success">Approved</span>
-                    {% else %}
-                    <span class="badge bg-warning text-dark">Pending</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" class="text-center">No logs found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-
 {% if logs.has_other_pages %}
-<nav aria-label="Page navigation">
-    <ul class="pagination justify-content-center">
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination pagination-sm justify-content-center shadow-sm">
         {% if logs.has_previous %}
-        <li class="page-item"><a class="page-link"
-                href="?page=1{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_user_id %}&user_id={{ filter_user_id }}{% endif %}">&laquo;
-                First</a></li>
-        <li class="page-item"><a class="page-link"
+        <li class="page-item"><a class="page-link text-primary"
+                href="?page=1{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_user_id %}&user_id={{ filter_user_id }}{% endif %}"><i class="bi bi-chevron-double-left"></i></a></li>
+        <li class="page-item"><a class="page-link text-primary"
                 href="?page={{ logs.previous_page_number }}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_user_id %}&user_id={{ filter_user_id }}{% endif %}">Previous</a>
         </li>
         {% endif %}
 
-        <li class="page-item disabled"><span class="page-link">Page {{ logs.number }} of {{
-                logs.paginator.num_pages }}</span></li>
+        <li class="page-item disabled"><span class="page-link bg-light text-secondary">Page <span class="fw-bold">{{ logs.number }}</span> of {{ logs.paginator.num_pages }}</span></li>
 
         {% if logs.has_next %}
-        <li class="page-item"><a class="page-link"
+        <li class="page-item"><a class="page-link text-primary"
                 href="?page={{ logs.next_page_number }}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_user_id %}&user_id={{ filter_user_id }}{% endif %}">Next</a>
         </li>
-        <li class="page-item"><a class="page-link"
-                href="?page={{ logs.paginator.num_pages }}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_user_id %}&user_id={{ filter_user_id }}{% endif %}">Last
-                &raquo;</a></li>
+        <li class="page-item"><a class="page-link text-primary"
+                href="?page={{ logs.paginator.num_pages }}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_user_id %}&user_id={{ filter_user_id }}{% endif %}"><i class="bi bi-chevron-double-right"></i></a></li>
         {% endif %}
     </ul>
 </nav>

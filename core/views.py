@@ -1602,8 +1602,31 @@ def approve_worklog(request, pk):
 @login_required
 @user_passes_test(lambda u: check_permission(u, 'purchases'))
 def purchase_list(request):
-    purchases = PurchaseRecord.objects.all().order_by('-date')
-    return render(request, 'core/purchase_list.html', {'purchases': purchases})
+    payment_status = request.GET.get('payment_status')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    purchases = PurchaseRecord.objects.all()
+
+    if payment_status:
+        purchases = purchases.filter(payment_status=payment_status)
+    if start_date:
+        purchases = purchases.filter(ordered_date__gte=start_date)
+    if end_date:
+        purchases = purchases.filter(ordered_date__lte=end_date)
+        
+    # Attempt to order by received_date or ordered_date instead of date if date does not exist on this model
+    try:
+        purchases = purchases.order_by('-ordered_date')
+    except Exception:
+        purchases = purchases.order_by('-date')
+
+    return render(request, 'core/purchase_list.html', {
+        'purchases': purchases,
+        'filter_payment_status': payment_status,
+        'filter_start_date': start_date,
+        'filter_end_date': end_date
+    })
 
 @login_required
 @user_passes_test(lambda u: check_permission(u, 'purchases'))
