@@ -3,14 +3,16 @@
 
 {% block content %}
 <div class="container-fluid p-0">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-4 border-bottom">
         <div>
-            <h2 class="mb-1">Create Inner Bill</h2>
-            <p class="text-muted mb-0">Generate a new internal invoice</p>
+            <h1 class="h2 mb-0"><i class="bi bi-receipt me-2 text-primary"></i>{% if editing %}Modify{% else %}Create{% endif %} Inner Bill</h1>
+            <p class="text-muted small mb-0 mt-1">{% if editing %}Update existing internal invoice{% else %}Generate a new internal invoice{% endif %}</p>
         </div>
-        <a href="{% url 'billing_home' %}" class="btn btn-light border">
-            <i class="bi bi-arrow-left me-2"></i>Back to Bills
-        </a>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{% url 'billing_home' %}" class="btn btn-sm btn-outline-secondary shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Back to Bills
+            </a>
+        </div>
     </div>
 
     <form method="post">
@@ -19,10 +21,10 @@
         <input type="hidden" name="advance_payment" value="0">
 
         <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-light py-3">
-                <h6 class="mb-0 fw-bold text-uppercase small text-muted">Bill Details</h6>
+            <div class="card-header bg-light py-3 border-bottom">
+                <h6 class="mb-0 fw-bold text-uppercase small text-muted"><i class="bi bi-info-circle me-1"></i> Bill Details</h6>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body p-4 bg-white">
                 {% if form.non_field_errors %}
                 <div class="alert alert-danger mb-3">
                     {% for error in form.non_field_errors %}
@@ -56,13 +58,13 @@
         {% endif %}
 
         <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-bold text-uppercase small text-muted">Items</h6>
-                <button type="button" class="btn btn-sm btn-primary" id="add-row">
+            <div class="card-header bg-light py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-uppercase small text-muted"><i class="bi bi-cart me-1"></i> Items</h6>
+                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" id="add-row">
                     <i class="bi bi-plus-lg me-1"></i>Add Item
                 </button>
             </div>
-            <div class="card-body p-0">
+            <div class="card-body p-0 bg-white">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0" id="items-table">
                         <thead class="bg-light">
@@ -147,7 +149,10 @@
         </div>
 
         <div class="card shadow-sm border-0 mb-4">
-            <div class="card-body p-4">
+            <div class="card-header bg-light py-3 border-bottom">
+                <h6 class="mb-0 fw-bold text-uppercase small text-muted"><i class="bi bi-credit-card me-1"></i> Payment & Remarks</h6>
+            </div>
+            <div class="card-body p-4 bg-white">
                 <div class="row g-4">
                     <div class="col-md-6">
                         <label class="form-label fw-medium">Payment Status</label>
@@ -174,11 +179,12 @@
             </div>
         </div>
 
-        <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-5">
-            <button type="button" class="btn btn-light btn-lg border px-5 me-md-2"
-                onclick="history.back()">Cancel</button>
-            <button type="submit" class="btn btn-success btn-lg px-5">
-                <i class="bi bi-check-lg me-2"></i>Generate Bill
+        <div class="d-flex justify-content-end gap-2 mt-4 mb-5 pt-3 border-top">
+            <button type="button" class="btn btn-light border px-4 rounded-pill shadow-sm" onclick="history.back()">
+                <i class="bi bi-arrow-left me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary px-4 rounded-pill shadow-sm" style="box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);">
+                <i class="bi bi-check-lg me-1"></i> {% if editing %}Update Bill{% else %}Generate Bill{% endif %}
             </button>
         </div>
     </form>

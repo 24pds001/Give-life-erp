@@ -135,6 +135,18 @@ h6 {
     margin-left: 260px;
     padding: 2rem;
     width: calc(100% - 260px);
+    transition: var(--transition);
+}
+
+@media (min-width: 769px) {
+    .sidebar.collapsed {
+        transform: translateX(-100%);
+        width: 0;
+    }
+    .main-content.expanded {
+        margin-left: 0;
+        width: 100%;
+    }
 }
 
 /* Cards */

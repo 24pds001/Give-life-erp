@@ -50,7 +50,7 @@
             <tr>
                 <th>Invoice</th>
                 <th>Type</th>
-                <th>Customer</th>
+                <th>Customer / Details</th>
                 <th>Total</th>
                 <th>Status</th>
                 <th>Created (IST)</th>
@@ -63,7 +63,21 @@
             <tr>
                 <td>{{ bill.invoice_number }}</td>
                 <td>{{ bill.get_bill_type_display }}</td>
-                <td>{% if bill.customer %}{{ bill.customer.customer_name }}{% else %}{{ bill.customer_name }}{% endif %}
+                <td>
+                    {% if bill.customer %}
+                        {{ bill.customer.customer_name }}
+                    {% else %}
+                        {{ bill.customer_name|default:"--" }}
+                    {% endif %}
+                    
+                    {% if bill.outlet_name %}
+                        <br><small class="text-muted"><i class="bi bi-shop me-1"></i>{{ bill.get_outlet_name_display }}</small>
+                        {% if bill.student_employees.exists %}
+                            <br><small class="text-muted"><i class="bi bi-people me-1"></i>
+                            {% for emp in bill.student_employees.all %}{{ emp.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            </small>
+                        {% endif %}
+                    {% endif %}
                 </td>
                 <td>{{ bill.total_amount }}</td>
                 <td>{{ bill.get_payment_status_display }}</td>

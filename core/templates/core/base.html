@@ -134,10 +134,12 @@
             <!-- Top Navbar for Mobile/Profile -->
             <nav
                 class="navbar navbar-expand-lg navbar-light bg-white shadow-sm rounded mb-4 d-flex justify-content-between px-3">
-                <button class="btn btn-outline-secondary d-md-none" type="button" id="sidebarToggle">
-                    <i class="bi bi-list"></i>
-                </button>
-                <h5 class="m-0 d-none d-md-block text-muted">{% block title %}Overview{% endblock %}</h5>
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-outline-secondary me-3" type="button" id="sidebarToggle">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <h5 class="m-0 d-none d-md-block text-muted">{% block title %}Overview{% endblock %}</h5>
+                </div>
 
                 <div class="dropdown">
                     <a class="btn btn-light dropdown-toggle d-flex align-items-center gap-2" href="#" role="button"
@@ -183,12 +185,30 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Mobile sidebar toggle
+        // Desktop and Mobile sidebar toggle
         const sidebarToggle = document.getElementById('sidebarToggle');
         const sidebar = document.querySelector('.sidebar');
+        const mainContent = document.querySelector('.main-content');
+        
+        // Restore state on load
+        if (window.innerWidth > 768) {
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+            }
+        }
+
         if (sidebarToggle) {
             sidebarToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('show');
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.toggle('show');
+                } else {
+                    sidebar.classList.toggle('collapsed');
+                    mainContent.classList.toggle('expanded');
+                    // Save state
+                    localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+                }
             });
         }
     </script>

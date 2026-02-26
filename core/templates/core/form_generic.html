@@ -1,13 +1,74 @@
 {% extends 'core/base.html' %}
 {% block content %}
-<div class="container" style="max-width: 600px;">
-    <div class="card p-4">
-        <h3>{{ title }}</h3>
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn btn-primary w-100">Save</button>
-        </form>
+<div class="container py-4" style="max-width: 600px;">
+    <div class="card shadow-sm border-0 overflow-hidden">
+        <div class="card-header bg-white border-bottom py-3 d-flex align-items-center">
+            <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-pencil-square me-2"></i>{{ title }}</h5>
+        </div>
+        <div class="card-body p-4 bg-light bg-opacity-25">
+            <form method="post" id="genericForm">
+                {% csrf_token %}
+                <div class="form-container">
+                    {{ form.as_p }}
+                </div>
+                
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                    <!-- The back link relies on javascript history for a generic template, or falls back to dashboard -->
+                    <button type="button" class="btn btn-light border px-4 rounded-pill shadow-sm" onclick="window.history.length > 1 ? window.history.back() : window.location.href='{% url 'dashboard' %}'">
+                        <i class="bi bi-arrow-left me-1"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary px-4 rounded-pill shadow-sm" style="box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);">
+                        <i class="bi bi-check-lg me-1"></i> Save Details
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
+
+<!-- Add Bootstrap classes to Django form inputs dynamically since we are using as_p -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const formContainer = document.querySelector('.form-container');
+        if (!formContainer) return;
+        
+        // Style all labels
+        const labels = formContainer.querySelectorAll('label');
+        labels.forEach(label => {
+            label.classList.add('form-label', 'fw-semibold', 'text-secondary', 'small', 'mb-1');
+        });
+        
+        // Try to wrap p tags in mb-3 for spacing
+        const paragraphs = formContainer.querySelectorAll('p');
+        paragraphs.forEach(p => {
+            p.classList.add('mb-3');
+        });
+
+        // Add form-control to inputs except checkboxes/radios
+        const inputs = formContainer.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), textarea');
+        inputs.forEach(input => {
+            input.classList.add('form-control', 'shadow-sm', 'border-secondary-subtle');
+        });
+
+        // Add form-select to select dropdowns
+        const selects = formContainer.querySelectorAll('select');
+        selects.forEach(select => {
+            select.classList.add('form-select', 'shadow-sm', 'border-secondary-subtle');
+        });
+        
+        // Add form-check-input to checkboxes and radios
+        const checks = formContainer.querySelectorAll('input[type="checkbox"], input[type="radio"]');
+        checks.forEach(check => {
+            check.classList.add('form-check-input');
+            // Move it before the label for proper bootstrap structure if needed,
+            // though standard django as_p might wrap it weirdly.
+        });
+        
+        // Style help texts
+        const helpTexts = formContainer.querySelectorAll('.helptext');
+        helpTexts.forEach(help => {
+            help.classList.add('form-text', 'text-muted', 'small');
+        });
+    });
+</script>
 {% endblock %}

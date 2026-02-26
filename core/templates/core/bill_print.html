@@ -499,7 +499,13 @@
                                 {% endif %}
 
                                 {% if bill.outlet_name %}
-                                <p class="mt-2 text-dark"><strong>Outlet:</strong> {{ bill.get_outlet_name_display }}
+                                <p class="mt-2 text-dark mb-1"><strong>Outlet:</strong> {{ bill.get_outlet_name_display }}</p>
+                                {% endif %}
+                                {% if bill.student_employees.exists %}
+                                <p class="mb-0 text-dark"><strong>Student Employees:</strong> 
+                                    {% for emp in bill.student_employees.all %}
+                                        {{ emp.username }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
                                 </p>
                                 {% endif %}
                             </div>

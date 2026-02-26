@@ -1,46 +1,181 @@
 {% extends 'core/base.html' %}
 {% load permission_tags %}
-{% block content %}
-<div class="container-fluid">
-    <h2 class="mb-3">Dashboard</h2>
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="card-subtitle mb-2 text-muted">Daily Sales</h6>
-                    <h4 class="card-title">INR {{ daily_sales }}</h4>
-                </div>
-            </div>
+{% block title %}Dashboard - Give Life ERP{% endblock %}
+
+{% block content %}
+<style>
+    /* Dashboard Specific Styles */
+    .dashboard-header {
+        margin-bottom: 2rem;
+    }
+
+    .metric-card {
+        border-radius: 12px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: none;
+        overflow: hidden;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .metric-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    /* Module Card Styling */
+    .module-card {
+        border-radius: 12px;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border: 1px solid rgba(0,0,0,0.05);
+        background: #ffffff;
+        height: 100%;
+        text-decoration: none !important;
+        display: block;
+        color: inherit;
+    }
+
+    .module-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -5px rgba(0, 0, 0, 0.04) !important;
+        border-color: rgba(0,0,0,0.08);
+    }
+    
+    .module-card:hover .module-icon-container {
+        transform: scale(1.05);
+    }
+
+    .module-icon-container {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem auto;
+        font-size: 1.75rem;
+        transition: transform 0.3s ease;
+    }
+
+    .module-title {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+    }
+
+    .module-count {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #4a5568;
+        margin: 0;
+        line-height: 1;
+    }
+
+    /* Search Bar */
+    .dashboard-search {
+        max-width: 450px;
+    }
+    
+    .dashboard-search .input-group-text {
+        background-color: #fff;
+        border-right: none;
+        color: #a0aec0;
+    }
+    
+    .dashboard-search .form-control {
+        border-left: none;
+    }
+    
+    .dashboard-search .form-control:focus {
+        box-shadow: none;
+        border-color: #ced4da;
+    }
+    
+    .dashboard-search:focus-within {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        border-radius: 0.375rem;
+    }
+    .dashboard-search:focus-within .form-control,
+    .dashboard-search:focus-within .input-group-text {
+        border-color: #86b7fe;
+    }
+</style>
+
+<div class="container-fluid py-2">
+    <!-- Header & Search -->
+    <div class="row align-items-center dashboard-header">
+        <div class="col-md-6 mb-3 mb-md-0">
+            <h2 class="mb-0 fw-bold d-flex align-items-center">
+                <i class="bi bi-speedometer2 text-primary me-3 fs-3"></i>Dashboard
+            </h2>
+            <p class="text-muted mt-1 mb-0">Overview and quick access to all ERP modules</p>
         </div>
-        <div class="col-md-3">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="card-subtitle mb-2 text-muted">Pending Payments</h6>
-                    <h4 class="card-title">{{ pending_payments }}</h4>
+        <div class="col-md-6 d-flex justify-content-md-end">
+            <form method="get" class="dashboard-search w-100">
+                <div class="input-group shadow-sm">
+                    <span class="input-group-text" id="search-addon"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control form-control-lg" placeholder="Search Invoice Number..." aria-label="Search Invoice" aria-describedby="search-addon" value="{{ request.GET.q }}">
+                    <button class="btn btn-primary px-4" type="submit" style="z-index: 0;">Search</button>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <form method="get" class="d-flex">
-                <input type="text" name="q" class="form-control me-2" placeholder="Search Invoice Number..."
-                    style="max-width: 400px;">
-                <button class="btn btn-outline-primary">Search</button>
             </form>
         </div>
     </div>
 
-    <div class="row mb-4">
-        <!-- Billing & Invoices: Merged -->
-        {% if user|has_module_access:'billing' %}
-        <div class="col-md-3 mb-3">
-            <a href="{% url 'billing_home' %}" class="text-decoration-none">
-                <div class="card text-center p-3 bg-success text-white h-100">
-                    <div class="card-body">
-                        <div class="mb-2"><i class="bi bi-receipt" style="font-size:1.5rem"></i></div>
-                        <h5>Billing & Invoices</h5>
-                        <p class="display-6">{{ invoices_count }}</p>
+    <!-- Top Metrics -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4 col-xl-3">
+            <div class="card metric-card shadow-sm bg-primary text-white h-100" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+                <div class="card-body p-4 position-relative">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0 text-white-50 fw-semibold text-uppercase tracking-wide">Daily Sales</h6>
+                        <div class="metric-icon-box bg-white bg-opacity-25 text-white">
+                            <i class="bi bi-cash-coin"></i>
+                        </div>
                     </div>
+                    <h3 class="mb-0 fw-bold display-6">₹{{ daily_sales }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-xl-3">
+            <div class="card metric-card shadow-sm h-100" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+                <div class="card-body p-4 position-relative">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0 text-white-50 fw-semibold text-uppercase tracking-wide">Pending Payments</h6>
+                        <div class="metric-icon-box bg-white bg-opacity-25 text-white">
+                            <i class="bi bi-exclamation-circle"></i>
+                        </div>
+                    </div>
+                    <h3 class="mb-0 fw-bold display-6">{{ pending_payments }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h5 class="fw-bold mb-3 text-secondary border-bottom pb-2">Quick Access Modules</h5>
+
+    <!-- Action Modules Grid -->
+    <div class="row g-4 mb-5">
+        
+        <!-- Billing & Invoices -->
+        {% if user|has_module_access:'billing' %}
+        <div class="col-sm-6 col-md-4 col-xl-3">
+            <a href="{% url 'billing_home' %}" class="module-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="module-icon-container bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-receipt"></i>
+                    </div>
+                    <h5 class="module-title">Billing & Invoices</h5>
+                    <p class="module-count">{{ invoices_count }}</p>
                 </div>
             </a>
         </div>
@@ -48,14 +183,14 @@
 
         <!-- Item Management -->
         {% if user|has_module_access:'inventory' %}
-        <div class="col-md-3 mb-3">
-            <a href="{% url 'item_list' %}" class="text-decoration-none">
-                <div class="card text-center p-3 bg-warning text-dark h-100">
-                    <div class="card-body">
-                        <div class="mb-2"><i class="bi bi-box-seam" style="font-size:1.5rem"></i></div>
-                        <h5>Item Management</h5>
-                        <p class="display-6">{{ items_count }}</p>
+        <div class="col-sm-6 col-md-4 col-xl-3">
+            <a href="{% url 'item_list' %}" class="module-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="module-icon-container bg-warning bg-opacity-10 text-warning" style="color: #d97706 !important;">
+                        <i class="bi bi-box-seam"></i>
                     </div>
+                    <h5 class="module-title">Item Management</h5>
+                    <p class="module-count">{{ items_count }}</p>
                 </div>
             </a>
         </div>
@@ -63,14 +198,14 @@
 
         <!-- Customers -->
         {% if user|has_module_access:'customers' %}
-        <div class="col-md-3 mb-3">
-            <a href="{% url 'customer_list' %}" class="text-decoration-none">
-                <div class="card text-center p-3 bg-info text-white h-100">
-                    <div class="card-body">
-                        <div class="mb-2"><i class="bi bi-people" style="font-size:1.5rem"></i></div>
-                        <h5>Customers</h5>
-                        <p class="display-6">{{ vendors_count }}</p>
+        <div class="col-sm-6 col-md-4 col-xl-3">
+            <a href="{% url 'customer_list' %}" class="module-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="module-icon-container bg-info bg-opacity-10 text-info" style="color: #0284c7 !important;">
+                        <i class="bi bi-people"></i>
                     </div>
+                    <h5 class="module-title">Customers</h5>
+                    <p class="module-count">{{ vendors_count }}</p>
                 </div>
             </a>
         </div>
@@ -78,14 +213,14 @@
 
         <!-- Inventory Tracking -->
         {% if user|has_module_access:'inventory' %}
-        <div class="col-md-3 mb-3">
-            <a href="{% url 'inventory_list' %}" class="text-decoration-none">
-                <div class="card text-center p-3 bg-secondary text-white h-100">
-                    <div class="card-body">
-                        <div class="mb-2"><i class="bi bi-stack" style="font-size:1.5rem"></i></div>
-                        <h5>Inventory Tracking</h5>
-                        <p class="display-6">{{ inventory_count }}</p>
+        <div class="col-sm-6 col-md-4 col-xl-3">
+            <a href="{% url 'inventory_list' %}" class="module-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="module-icon-container bg-secondary bg-opacity-10 text-secondary">
+                        <i class="bi bi-stack"></i>
                     </div>
+                    <h5 class="module-title">Inventory Tracking</h5>
+                    <p class="module-count">{{ inventory_count }}</p>
                 </div>
             </a>
         </div>
@@ -93,14 +228,14 @@
 
         <!-- Work Logs -->
         {% if user|has_module_access:'worklogs' %}
-        <div class="col-md-3 mb-3">
-            <a href="{% url 'worklog_list' %}" class="text-decoration-none">
-                <div class="card text-center p-3 bg-gradient-light-purple text-dark h-100">
-                    <div class="card-body">
-                        <div class="mb-2"><i class="bi bi-clock-history" style="font-size:1.5rem"></i></div>
-                        <h5>Work Logs</h5>
-                        <p class="display-6">-</p>
+        <div class="col-sm-6 col-md-4 col-xl-3">
+            <a href="{% url 'worklog_list' %}" class="module-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="module-icon-container bg-primary bg-opacity-10 text-primary" style="color: #6366f1 !important; background-color: rgba(99, 102, 241, 0.1) !important;">
+                        <i class="bi bi-clock-history"></i>
                     </div>
+                    <h5 class="module-title">Work Logs</h5>
+                    <p class="module-count text-muted fs-5 mt-2"><i class="bi bi-arrow-right"></i></p>
                 </div>
             </a>
         </div>
@@ -108,14 +243,14 @@
 
         <!-- Vendor Management -->
         {% if user|has_module_access:'vendors' %}
-        <div class="col-md-3 mb-3">
-            <a href="{% url 'vendor_list' %}" class="text-decoration-none">
-                <div class="card text-center p-3 bg-danger text-white h-100">
-                    <div class="card-body">
-                        <div class="mb-2"><i class="bi bi-shop-window" style="font-size:1.5rem"></i></div>
-                        <h5>Vendor Management</h5>
-                        <p class="display-6">-</p>
+        <div class="col-sm-6 col-md-4 col-xl-3">
+            <a href="{% url 'vendor_list' %}" class="module-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="module-icon-container bg-danger bg-opacity-10 text-danger">
+                        <i class="bi bi-shop-window"></i>
                     </div>
+                    <h5 class="module-title">Vendor Mgmt</h5>
+                    <p class="module-count text-muted fs-5 mt-2"><i class="bi bi-arrow-right"></i></p>
                 </div>
             </a>
         </div>
@@ -123,14 +258,14 @@
 
         <!-- Purchase Records -->
         {% if user|has_module_access:'purchases' %}
-        <div class="col-md-3 mb-3">
-            <a href="{% url 'purchase_list' %}" class="text-decoration-none">
-                <div class="card text-center p-3 bg-primary text-white h-100" style="--bs-bg-opacity: .8;">
-                    <div class="card-body">
-                        <div class="mb-2"><i class="bi bi-bag-check" style="font-size:1.5rem"></i></div>
-                        <h5>Purchase Records</h5>
-                        <p class="display-6">-</p>
+        <div class="col-sm-6 col-md-4 col-xl-3">
+            <a href="{% url 'purchase_list' %}" class="module-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="module-icon-container bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-bag-check"></i>
                     </div>
+                    <h5 class="module-title">Purchase Records</h5>
+                    <p class="module-count text-muted fs-5 mt-2"><i class="bi bi-arrow-right"></i></p>
                 </div>
             </a>
         </div>
@@ -138,47 +273,76 @@
 
         <!-- Employee List -->
         {% if user|has_module_access:'employees' %}
-        <div class="col-md-3 mb-3">
-            <a href="{% url 'employee_list' %}" class="text-decoration-none">
-                <div class="card text-center p-3 bg-success text-white h-100" style="--bs-bg-opacity: .8;">
-                    <div class="card-body">
-                        <div class="mb-2"><i class="bi bi-person-badge-fill" style="font-size:1.5rem"></i></div>
-                        <h5>Employee List</h5>
-                        <p class="display-6">-</p>
+        <div class="col-sm-6 col-md-4 col-xl-3">
+            <a href="{% url 'employee_list' %}" class="module-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="module-icon-container bg-success bg-opacity-10 text-success" style="color: #10b981 !important; background-color: rgba(16, 185, 129, 0.1) !important;">
+                        <i class="bi bi-person-badge-fill"></i>
                     </div>
+                    <h5 class="module-title">Employee List</h5>
+                    <p class="module-count text-muted fs-5 mt-2"><i class="bi bi-arrow-right"></i></p>
                 </div>
             </a>
         </div>
         {% endif %}
     </div>
 
-    <div class="card">
-        <div class="card-header">Recent Bills</div>
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>Invoice</th>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Total</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for bill in recent_bills %}
-                    <tr>
-                        <td>{{ bill.invoice_number }}</td>
-                        <td>{{ bill.created_at|date:"d M Y H:i" }}</td>
-                        <td>{{ bill.get_bill_type_display }}</td>
-                        <td>{{ bill.total_amount }}</td>
-                        <td>{{ bill.get_payment_status_display }}</td>
-                        <td><a href="{% url 'bill_detail' bill.id %}" class="btn btn-sm btn-info">View</a></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div </div>
+    <!-- Recent Bills Table -->
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-5">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history text-muted me-2"></i>Recent Bills</h5>
+            <a href="{% url 'billing_home' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">View All</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="text-uppercase text-muted small fw-semibold py-3 ps-4 border-0">Invoice</th>
+                            <th class="text-uppercase text-muted small fw-semibold py-3 border-0">Date</th>
+                            <th class="text-uppercase text-muted small fw-semibold py-3 border-0">Type</th>
+                            <th class="text-uppercase text-muted small fw-semibold py-3 border-0">Total</th>
+                            <th class="text-uppercase text-muted small fw-semibold py-3 border-0">Status</th>
+                            <th class="text-uppercase text-muted small fw-semibold py-3 pe-4 border-0 text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="border-top-0">
+                        {% for bill in recent_bills %}
+                        <tr>
+                            <td class="ps-4 fw-medium text-dark">{{ bill.invoice_number }}</td>
+                            <td class="text-muted">{{ bill.created_at|date:"d M Y H:i" }}</td>
+                            <td>
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill fw-normal px-2 py-1 border border-secondary border-opacity-25">
+                                    {{ bill.get_bill_type_display }}
+                                </span>
+                            </td>
+                            <td class="fw-semibold">₹{{ bill.total_amount }}</td>
+                            <td>
+                                {% if bill.payment_status == 'PAID' %}
+                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 border border-success border-opacity-25"><i class="bi bi-check-circle me-1"></i> PAID</span>
+                                {% else %}
+                                    <span class="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3 py-2 border border-warning border-opacity-25" style="color: #b45309 !important;"><i class="bi bi-hourglass-split me-1"></i> PENDING</span>
+                                {% endif %}
+                            </td>
+                            <td class="pe-4 text-end">
+                                <a href="{% url 'bill_detail' bill.id %}" class="btn btn-sm btn-outline-info rounded-pill px-3">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-folder2-open display-4 d-block mb-3 opacity-50"></i>
+                                No recent bills found.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    {% endblock %}
+
+</div>
+{% endblock %}
