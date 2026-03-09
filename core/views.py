@@ -3,8 +3,8 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.db.models import Sum, Q
 from django.utils import timezone
-from .models import User, Item, Bill, BillItem, InventoryLog, Customer, Vendor, Attendance, StudentWorkLog, PurchaseRecord, VendorPayment, RolePermission
-from .forms import CustomUserCreationForm, BillForm, BillItemFormSet, ItemForm, InventoryLogForm, CustomerForm, VendorForm, AttendanceForm, StudentWorkLogForm, PurchaseRecordForm, VendorPaymentForm, RolePermissionForm, BillPaymentFormSet, InventorySessionForm, InventorySessionItemFormSet, InventorySessionPaymentFormSet
+from .models import User, Item, Bill, BillItem, InventoryLog, Customer, Vendor, Attendance, PurchaseRecord, VendorPayment, RolePermission
+from .forms import CustomUserCreationForm, BillForm, BillItemFormSet, ItemForm, InventoryLogForm, CustomerForm, VendorForm, AttendanceForm, PurchaseRecordForm, VendorPaymentForm, RolePermissionForm, BillPaymentFormSet, InventorySessionForm, InventorySessionItemFormSet, InventorySessionPaymentFormSet
 import json
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
@@ -77,10 +77,10 @@ def create_user(request):
         form = CustomUserCreationForm()
     return render(request, 'core/form_generic.html', {'form': form, 'title': 'Create User'})
 
-from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, BillPayment, Attendance, StudentWorkLog, PurchaseRecord, PurchaseItem, VendorPayment, ActivityLog, RolePermission, InventorySession, InventorySessionItem
+from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, BillPayment, Attendance, PurchaseRecord, PurchaseItem, VendorPayment, ActivityLog, RolePermission, InventorySession, InventorySessionItem
 from .forms import (
     InventoryLogForm, ItemForm, 
-    CustomerForm, VendorForm, BillPaymentFormSet, AttendanceForm, StudentWorkLogForm,
+    CustomerForm, VendorForm, BillPaymentFormSet, AttendanceForm,
     PurchaseRecordForm, VendorPaymentForm, RolePermissionForm,
     InventorySessionForm, InventorySessionItemFormSet
 )
@@ -1365,17 +1365,13 @@ def attendance_list(request):
     # Get all users for filter dropdown (only for admins/accountants)
     users = User.objects.filter(role__in=['EMPLOYEE', 'STUDENT']) if (request.user.is_supervisor_or_admin() or request.user.role == 'ACCOUNTANT') else None
 
-    # Get today's student work logs
-    todays_student_logs = StudentWorkLog.objects.filter(date=timezone.now().date()).select_related('student')
-
     return render(request, 'core/attendance_list.html', {
         'logs': page_obj, # Pass page_obj instead of all logs
         'current_attendance': current_attendance,
         'filter_start_date': start_date,
         'filter_end_date': end_date,
         'filter_user_id': user_id,
-        'users': users,
-        'todays_student_logs': todays_student_logs
+        'users': users
     })
 
 @login_required
@@ -1435,26 +1431,7 @@ def approve_attendance(request):
             attendance.is_approved = True
             attendance.save()
             
-            # Auto-create worklog for students
-            if attendance.user.role == 'STUDENT' and attendance.total_hours:
-                exists = StudentWorkLog.objects.filter(
-                    student=attendance.user, 
-                    date=attendance.date
-                ).exists()
-                
-                if not exists:
-                    StudentWorkLog.objects.create(
-                        student=attendance.user,
-                        date=attendance.date,
-                        working_hours=attendance.total_hours,
-                        overtime_hours=attendance.overtime_hours,
-                        status='APPROVED'
-                    )
-                    messages.success(request, f"Attendance approved and Work Log created for {attendance.user.username}")
-                else:
-                    messages.success(request, f"Attendance approved. Work Log already exists for {attendance.user.username} on this date.")
-            else:
-                messages.success(request, "Attendance approved.")
+            messages.success(request, "Attendance approved.")
                 
         elif action == 'reject':
             attendance.is_approved = False 
@@ -1490,114 +1467,6 @@ def create_attendance(request):
     else:
         form = AttendanceForm()
     return render(request, 'core/form_generic.html', {'form': form, 'title': 'Log Attendance'})
-
-@login_required
-@user_passes_test(lambda u: check_permission(u, 'worklogs'))
-def worklog_list(request):
-    if request.user.is_supervisor_or_admin() or request.user.role == 'ACCOUNTANT':
-        logs = StudentWorkLog.objects.exclude(status='OPEN').order_by('-date', '-entry_time')
-    else:
-        logs = StudentWorkLog.objects.filter(student=request.user).order_by('-date', '-entry_time')
-    
-    current_worklog = None
-    if request.user.role == 'STUDENT':
-        current_worklog = StudentWorkLog.objects.filter(student=request.user, status='OPEN').first()
-        
-    return render(request, 'core/worklog_list.html', {'logs': logs, 'current_worklog': current_worklog})
-
-@login_required
-@user_passes_test(lambda u: check_permission(u, 'worklogs'))
-def start_worklog(request):
-    if request.user.role != 'STUDENT':
-        messages.error(request, "Only students can create work logs")
-        return redirect('dashboard')
-    
-    # Check if already has an open log
-    open_log = StudentWorkLog.objects.filter(student=request.user, status='OPEN').exists()
-    if open_log:
-         messages.warning(request, "You already have an active work session.")
-         return redirect('worklog_list')
-
-    if request.method == 'POST':
-        now_local = timezone.localtime(timezone.now())
-        StudentWorkLog.objects.create(
-            student=request.user,
-            date=now_local.date(),
-            entry_time=now_local.time(),
-            status='OPEN'
-        )
-        messages.success(request, "Work started. Entry time logged.")
-    return redirect('worklog_list')
-
-@login_required
-@user_passes_test(lambda u: check_permission(u, 'worklogs'))
-def end_worklog(request):
-    if request.user.role != 'STUDENT':
-        messages.error(request, "Only students can end work logs")
-        return redirect('dashboard')
-
-    if request.method == 'POST':
-        # Find open session
-        log = StudentWorkLog.objects.filter(student=request.user, status='OPEN').first()
-        if not log:
-            messages.error(request, "No active work session found.")
-            return redirect('worklog_list')
-            
-        now_local = timezone.localtime(timezone.now())
-        log.exit_time = now_local.time()
-        
-        # Calculate duration
-        # Use log.date for entry time reference
-        dt_in = datetime.combine(log.date, log.entry_time)
-        # Use current date for exit time reference
-        current_date_out = now_local.date()
-        dt_out = datetime.combine(current_date_out, log.exit_time)
-        
-        # If somehow dt_out is before dt_in (e.g. timezone glitch or logic error), handle it
-        if dt_out < dt_in:
-             # Fallback: assume same day if date is weird, or just error. 
-             # Ideally this shouldn't happen if clocking out after clocking in.
-             # But if they clock in today and clock out... yesterday? Impossible.
-             # If they clock in today 23:00 and clock out today 22:00?
-             pass 
-             
-        diff = dt_out - dt_in
-        hours = diff.total_seconds() / 3600
-        
-        # Ensure non-negative
-        if hours < 0:
-            hours = 0
-            
-        log.working_hours = Decimal(hours)
-        log.status = 'PENDING'
-        log.save()
-        
-        messages.success(request, f"Work ended. Total hours: {hours:.2f}. Submitted for approval.")
-        
-    return redirect('worklog_list')
-
-@login_required
-@user_passes_test(lambda u: check_permission(u, 'worklogs'))
-def approve_worklog(request, pk):
-    if request.user.role != 'ACCOUNTANT' and not request.user.is_supervisor_or_admin():
-        messages.error(request, "Unauthorized")
-        return redirect('worklog_list')
-    log = get_object_or_404(StudentWorkLog, pk=pk)
-    
-    # Prevent modification if already final
-    if log.status in ['APPROVED', 'REJECTED']:
-        messages.warning(request, f"This work log is already {log.get_status_display()} and cannot be changed.")
-        return redirect('worklog_list')
-
-    if request.method == 'POST':
-        action = request.POST.get('action')
-        if action == 'approve':
-            log.status = 'APPROVED'
-        elif action == 'reject':
-            log.status = 'REJECTED'
-        log.save()
-        return redirect('worklog_list')
-    return render(request, 'core/form_generic.html', {'form': None, 'title': f'Approve Work Log for {log.student.username}', 'object': log})
 
 @login_required
 @user_passes_test(lambda u: check_permission(u, 'purchases'))
@@ -1790,29 +1659,6 @@ def payroll_summary(request):
 
     payroll_data = []
 
-    # Students
-    students = User.objects.filter(role='STUDENT')
-    for student in students:
-        logs = StudentWorkLog.objects.filter(student=student, status='APPROVED')
-        if start_date:
-            logs = logs.filter(date__gte=start_date)
-        if end_date:
-            logs = logs.filter(date__lte=end_date)
-
-        total_hours = logs.aggregate(Sum('working_hours'))['working_hours__sum'] or 0
-        overtime = logs.aggregate(Sum('overtime_hours'))['overtime_hours__sum'] or 0
-        # Assuming rate 50 for students
-        amount = (total_hours * 50) + (overtime * 75)
-        
-        if total_hours > 0 or overtime > 0: # Only show active
-            payroll_data.append({
-                'user': student,
-                'role': 'Student',
-                'total_hours': total_hours,
-                'overtime': overtime,
-                'amount': amount
-            })
-
     # Employees
     employees = User.objects.filter(role='EMPLOYEE')
     for emp in employees:
@@ -1840,74 +1686,3 @@ def payroll_summary(request):
         'filter_end_date': end_date
     })
 
-@login_required
-@user_passes_test(lambda u: check_permission(u, 'reports'))
-def export_student_payroll(request):
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-
-    response = HttpResponse(content_type='text/csv')
-    filename = f"student_payroll_{start_date}_to_{end_date}.csv"
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    writer = csv.writer(response)
-
-    # Header
-    month_str = ""
-    if start_date:
-        try:
-             # Basic attempt to guess month from start date
-             dt = datetime.strptime(start_date, '%Y-%m-%d')
-             month_str = dt.strftime('%B %Y')
-        except:
-             month_str = "Specified Period"
-    
-    writer.writerow([f"Loyola Reach out café Student payroll for the month {month_str}"])
-    writer.writerow(['S.no', 'Students Name', 'Name on Bank Account', 'Name of the bank', 'Account Number', 'IFSC Code', 'Mobile Number', 'Total Hours', 'OT', 'Amount'])
-
-    students = User.objects.filter(role='STUDENT')
-    idx = 1
-    grand_total = Decimal(0)
-
-    for student in students:
-        logs = StudentWorkLog.objects.filter(student=student, status='APPROVED')
-        if start_date:
-            logs = logs.filter(date__gte=start_date)
-        if end_date:
-            logs = logs.filter(date__lte=end_date)
-        
-        total_hours = logs.aggregate(Sum('working_hours'))['working_hours__sum'] or Decimal(0)
-        overtime = logs.aggregate(Sum('overtime_hours'))['overtime_hours__sum'] or Decimal(0)
-        
-        if total_hours == 0 and overtime == 0:
-            continue
-            
-        amount = (total_hours * 50) + (overtime * 75)
-        grand_total += amount
-
-        writer.writerow([
-            idx,
-            student.username, # Or first_name + last_name
-            student.account_holder_name or '',
-            student.bank_name or '',
-            student.account_number or '',
-            student.ifsc_code or '',
-            student.contact_number or '',
-            total_hours,
-            overtime,
-            amount
-        ])
-        idx += 1
-    
-    writer.writerow([])
-    writer.writerow(['', '', '', '', '', '', '', '', 'Grand Total', grand_total])
-    writer.writerow([])
-    writer.writerow([])
-    
-    # Footer signatures
-    today_str = datetime.now().strftime('%d-%m-%Y')
-    writer.writerow([f"Date: {today_str}", "", "", "", "", "", "Place: Chennai"])
-    writer.writerow([])
-    writer.writerow([])
-    writer.writerow(["Give life incharge signature", "", "", "", "", "", "Principal Signature"])
-
-    return response

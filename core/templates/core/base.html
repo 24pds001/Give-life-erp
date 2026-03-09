@@ -92,12 +92,7 @@
                 {% endif %}
 
                 <div class="sidebar-heading">Workforce</div>
-                {% if user|has_module_access:'worklogs' %}
-                <a href="{% url 'worklog_list' %}"
-                    class="sidebar-link {% if 'worklogs' in request.path %}active{% endif %}">
-                    <i class="bi bi-clock-history"></i> Work Logs
-                </a>
-                {% endif %}
+
 
                 {% if user|has_module_access:'purchases' %}
                 <a href="{% url 'purchase_list' %}"

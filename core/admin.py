@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Item, Bill, BillItem, InventoryLog, Customer, Vendor, ActivityLog, Attendance, StudentWorkLog, PurchaseRecord, VendorPayment
+from .models import User, Item, Bill, BillItem, InventoryLog, Customer, Vendor, ActivityLog, Attendance, PurchaseRecord, VendorPayment
 
 
 class BillItemInline(admin.TabularInline):
@@ -74,19 +74,7 @@ class AttendanceAdmin(admin.ModelAdmin):
     list_display = ('user', 'date', 'in_time', 'out_time', 'total_hours', 'is_approved')
     list_filter = ('date', 'is_approved', 'user')
 
-@admin.register(StudentWorkLog)
-class StudentWorkLogAdmin(admin.ModelAdmin):
-    list_display = ('student', 'date', 'working_hours', 'status')
-    list_filter = ('status', 'date')
-    actions = ['approve_logs', 'reject_logs']
 
-    def approve_logs(self, request, queryset):
-        queryset.update(status='APPROVED')
-    approve_logs.short_description = "Approve selected logs"
-
-    def reject_logs(self, request, queryset):
-        queryset.update(status='REJECTED')
-    reject_logs.short_description = "Reject selected logs"
 
 @admin.register(PurchaseRecord)
 class PurchaseRecordAdmin(admin.ModelAdmin):

@@ -226,20 +226,7 @@
         </div>
         {% endif %}
 
-        <!-- Work Logs -->
-        {% if user|has_module_access:'worklogs' %}
-        <div class="col-sm-6 col-md-4 col-xl-3">
-            <a href="{% url 'worklog_list' %}" class="module-card shadow-sm">
-                <div class="card-body text-center p-4">
-                    <div class="module-icon-container bg-primary bg-opacity-10 text-primary" style="color: #6366f1 !important; background-color: rgba(99, 102, 241, 0.1) !important;">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                    <h5 class="module-title">Work Logs</h5>
-                    <p class="module-count text-muted fs-5 mt-2"><i class="bi bi-arrow-right"></i></p>
-                </div>
-            </a>
-        </div>
-        {% endif %}
+
 
         <!-- Vendor Management -->
         {% if user|has_module_access:'vendors' %}
