@@ -2,7 +2,7 @@ from django import forms
 # Force reload
 from django.forms import inlineformset_factory
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, Attendance, PurchaseRecord, VendorPayment, BillPayment, InventorySession, InventorySessionItem, InventorySessionPayment
+from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, PurchaseRecord, VendorPayment, BillPayment, InventorySession, InventorySessionItem, InventorySessionPayment
 
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
@@ -219,15 +219,7 @@ class VendorForm(forms.ModelForm):
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
-class AttendanceForm(forms.ModelForm):
-    class Meta:
-        model = Attendance
-        fields = ['date', 'in_time', 'out_time']
-        widgets = {
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'in_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
-            'out_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
-        }
+
 
 class PurchaseRecordForm(forms.ModelForm):
     class Meta:

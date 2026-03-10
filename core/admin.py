@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Item, Bill, BillItem, InventoryLog, Customer, Vendor, ActivityLog, Attendance, PurchaseRecord, VendorPayment
+from .models import User, Item, Bill, BillItem, InventoryLog, Customer, Vendor, ActivityLog, PurchaseRecord, VendorPayment
 
 
 class BillItemInline(admin.TabularInline):
@@ -68,11 +68,6 @@ class ActivityLogAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
-
-@admin.register(Attendance)
-class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ('user', 'date', 'in_time', 'out_time', 'total_hours', 'is_approved')
-    list_filter = ('date', 'is_approved', 'user')
 
 
 

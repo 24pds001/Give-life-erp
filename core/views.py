@@ -3,8 +3,8 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.db.models import Sum, Q
 from django.utils import timezone
-from .models import User, Item, Bill, BillItem, InventoryLog, Customer, Vendor, Attendance, PurchaseRecord, VendorPayment, RolePermission
-from .forms import CustomUserCreationForm, BillForm, BillItemFormSet, ItemForm, InventoryLogForm, CustomerForm, VendorForm, AttendanceForm, PurchaseRecordForm, VendorPaymentForm, RolePermissionForm, BillPaymentFormSet, InventorySessionForm, InventorySessionItemFormSet, InventorySessionPaymentFormSet
+from .models import User, Item, Bill, BillItem, InventoryLog, Customer, Vendor, PurchaseRecord, VendorPayment, RolePermission
+from .forms import CustomUserCreationForm, BillForm, BillItemFormSet, ItemForm, InventoryLogForm, CustomerForm, VendorForm, PurchaseRecordForm, VendorPaymentForm, RolePermissionForm, BillPaymentFormSet, InventorySessionForm, InventorySessionItemFormSet, InventorySessionPaymentFormSet
 import json
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
@@ -77,10 +77,10 @@ def create_user(request):
         form = CustomUserCreationForm()
     return render(request, 'core/form_generic.html', {'form': form, 'title': 'Create User'})
 
-from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, BillPayment, Attendance, PurchaseRecord, PurchaseItem, VendorPayment, ActivityLog, RolePermission, InventorySession, InventorySessionItem
+from .models import User, Bill, BillItem, Item, InventoryLog, Customer, Vendor, BillPayment, PurchaseRecord, PurchaseItem, VendorPayment, ActivityLog, RolePermission, InventorySession, InventorySessionItem
 from .forms import (
     InventoryLogForm, ItemForm, 
-    CustomerForm, VendorForm, BillPaymentFormSet, AttendanceForm,
+    CustomerForm, VendorForm, BillPaymentFormSet,
     PurchaseRecordForm, VendorPaymentForm, RolePermissionForm,
     InventorySessionForm, InventorySessionItemFormSet
 )
@@ -1323,150 +1323,7 @@ def delete_employee(request, pk):
         return redirect('employee_list')
     return render(request, 'core/form_generic.html', {'form': None, 'title': f'Deactivate Employee {emp.username}', 'object': emp})
 
-@login_required
-@user_passes_test(lambda u: check_permission(u, 'attendance'))
-def attendance_list(request):
-    # Base query with optimization
-    if request.user.is_supervisor_or_admin() or request.user.role == 'ACCOUNTANT':
-        logs = Attendance.objects.select_related('user').all().order_by('-date', '-in_time')
-    else:
-        logs = Attendance.objects.filter(user=request.user).order_by('-date', '-in_time')
 
-    # Filtering
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-    user_id = request.GET.get('user_id')
-
-    if start_date:
-        try:
-            sd = datetime.fromisoformat(start_date).date()
-            logs = logs.filter(date__gte=sd)
-        except ValueError:
-            pass
-    
-    if end_date:
-        try:
-            ed = datetime.fromisoformat(end_date).date()
-            logs = logs.filter(date__lte=ed)
-        except ValueError:
-            pass
-
-    if user_id and (request.user.is_supervisor_or_admin() or request.user.role == 'ACCOUNTANT'):
-        logs = logs.filter(user_id=user_id)
-
-    # Pagination
-    paginator = Paginator(logs, 20) # Show 20 logs per page
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    # Check if user is currently clocked in
-    current_attendance = Attendance.objects.filter(user=request.user, out_time__isnull=True, date=timezone.now().date()).first()
-    
-    # Get all users for filter dropdown (only for admins/accountants)
-    users = User.objects.filter(role__in=['EMPLOYEE', 'STUDENT']) if (request.user.is_supervisor_or_admin() or request.user.role == 'ACCOUNTANT') else None
-
-    return render(request, 'core/attendance_list.html', {
-        'logs': page_obj, # Pass page_obj instead of all logs
-        'current_attendance': current_attendance,
-        'filter_start_date': start_date,
-        'filter_end_date': end_date,
-        'filter_user_id': user_id,
-        'users': users
-    })
-
-@login_required
-@user_passes_test(lambda u: check_permission(u, 'attendance'))
-def clock_in(request):
-    if request.method == 'POST':
-        # Check if already clocked in today
-        today = timezone.localtime(timezone.now()).date()
-        existing = Attendance.objects.filter(user=request.user, out_time__isnull=True, date=today).first()
-        if existing:
-            messages.warning(request, "You are already clocked in.")
-        else:
-            now_local = timezone.localtime(timezone.now())
-            Attendance.objects.create(
-                user=request.user,
-                date=now_local.date(),
-                in_time=now_local.time()
-            )
-            messages.success(request, "Clocked in successfully.")
-    return redirect('attendance_list')
-
-@login_required
-@user_passes_test(lambda u: check_permission(u, 'attendance'))
-def clock_out(request):
-    if request.method == 'POST':
-        today = timezone.localtime(timezone.now()).date()
-        # Find open attendance for today
-        attendance = Attendance.objects.filter(user=request.user, out_time__isnull=True, date=today).first()
-        if attendance:
-            now_local = timezone.localtime(timezone.now())
-            attendance.out_time = now_local.time()
-            # Calculate duration
-            dt_in = datetime.combine(today, attendance.in_time)
-            dt_out = datetime.combine(today, attendance.out_time)
-            diff = dt_out - dt_in
-            hours = diff.total_seconds() / 3600
-            attendance.total_hours = Decimal(hours)
-            attendance.save()
-            messages.success(request, "Clocked out successfully.")
-        else:
-            messages.error(request, "No active session found to clock out from.")
-    return redirect('attendance_list')
-
-@login_required
-@user_passes_test(lambda u: check_permission(u, 'attendance'))
-def approve_attendance(request):
-    if not (request.user.is_supervisor_or_admin() or request.user.role == 'ACCOUNTANT'):
-        messages.error(request, "Unauthorized")
-        return redirect('attendance_list')
-        
-    if request.method == 'POST':
-        attendance_id = request.POST.get('attendance_id')
-        action = request.POST.get('action')
-        attendance = get_object_or_404(Attendance, id=attendance_id)
-        
-        if action == 'approve':
-            attendance.is_approved = True
-            attendance.save()
-            
-            messages.success(request, "Attendance approved.")
-                
-        elif action == 'reject':
-            attendance.is_approved = False 
-            attendance.save()
-            messages.warning(request, "Attendance rejected.")
-            
-        return redirect('approve_attendance')
-    
-    # GET request: Show pending approvals
-    pending_attendance = Attendance.objects.filter(is_approved=False).order_by('-date', '-in_time')
-    return render(request, 'core/attendance_approval.html', {'pending_logs': pending_attendance})
-
-@login_required
-@user_passes_test(lambda u: check_permission(u, 'attendance'))
-def create_attendance(request):
-    if request.method == 'POST':
-        form = AttendanceForm(request.POST)
-        if form.is_valid():
-            att = form.save(commit=False)
-            att.user = request.user
-            # Calculate total hours if out_time is present
-            if att.out_time and att.in_time:
-                # Simple calculation, assuming same day
-                dummy_date = datetime.today().date()
-                dt_in = datetime.combine(dummy_date, att.in_time)
-                dt_out = datetime.combine(dummy_date, att.out_time)
-                diff = dt_out - dt_in
-                hours = diff.total_seconds() / 3600
-                att.total_hours = Decimal(hours)
-            att.save()
-            messages.success(request, "Attendance logged")
-            return redirect('attendance_list')
-    else:
-        form = AttendanceForm()
-    return render(request, 'core/form_generic.html', {'form': form, 'title': 'Log Attendance'})
 
 @login_required
 @user_passes_test(lambda u: check_permission(u, 'purchases'))
@@ -1651,38 +1508,5 @@ def approve_vendor_payment(request, pk):
         return redirect('vendor_payment_list')
     return render(request, 'core/form_generic.html', {'form': None, 'title': f'Approve Payment to {payment.vendor.name}', 'object': payment})
 
-@login_required
-@user_passes_test(lambda u: check_permission(u, 'reports'))
-def payroll_summary(request):
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
 
-    payroll_data = []
-
-    # Employees
-    employees = User.objects.filter(role='EMPLOYEE')
-    for emp in employees:
-        logs = Attendance.objects.filter(user=emp)
-        if start_date:
-            logs = logs.filter(date__gte=start_date)
-        if end_date:
-            logs = logs.filter(date__lte=end_date)
-            
-        total_hours = logs.aggregate(Sum('total_hours'))['total_hours__sum'] or 0
-        amount = total_hours * 100 # Rate 100
-        
-        if total_hours > 0:
-            payroll_data.append({
-                'user': emp,
-                'role': 'Employee',
-                'total_hours': total_hours,
-                'overtime': 0,
-                'amount': amount
-            })
-
-    return render(request, 'core/payroll_summary.html', {
-        'payroll_data': payroll_data,
-        'filter_start_date': start_date,
-        'filter_end_date': end_date
-    })
 

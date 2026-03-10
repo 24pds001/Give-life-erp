@@ -62,5 +62,5 @@ class GranularPermissionsTest(TestCase):
         accountant = User.objects.create_user(username='accountant', password='password', role='ACCOUNTANT')
         self.assertTrue(accountant.has_module_access('billing'))
         # Check model logic for accountant inventory access... 
-        # In model: ACCOUNTANT gets 'billing', 'invoices', 'payroll', 'reports', 'purchases', 'vendor_payments', 'worklogs', 'attendance'
+        # In model: ACCOUNTANT gets 'billing', 'invoices', 'reports', 'purchases', 'vendor_payments', 'worklogs'
         self.assertFalse(accountant.has_module_access('inventory')) 

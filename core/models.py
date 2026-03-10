@@ -64,7 +64,7 @@ class User(AbstractUser):
         # Default permissions based on role if not explicitly set
         if self.role == 'SUPERVISOR':
             return True 
-        if self.role == 'ACCOUNTANT' and module_name in ['billing', 'invoices', 'payroll', 'vendor_payments', 'purchases', 'attendance']:
+        if self.role == 'ACCOUNTANT' and module_name in ['billing', 'invoices', 'vendor_payments', 'purchases']:
             return True
         if self.role == 'EMPLOYEE' and module_name in ['billing', 'invoices']:
              pass # Logic was pass? implies False default return at end.
@@ -95,7 +95,7 @@ class RolePermission(models.Model):
     def get_default_permissions():
         # Schema: { 'module': { 'action': boolean } }
         # Actions: view, create, edit, delete, approve
-        modules = ['users', 'items', 'customers', 'sales_bill', 'outer_bill', 'inner_bill', 'inventory', 'vendors', 'employees', 'attendance', 'purchases', 'vendor_payments', 'payroll', 'reports']
+        modules = ['users', 'items', 'customers', 'sales_bill', 'outer_bill', 'inner_bill', 'inventory', 'vendors', 'employees', 'purchases', 'vendor_payments', 'reports']
         return {m: {'view': False, 'create': False, 'edit': False, 'delete': False, 'approve': False} for m in modules}
 
 class ActivityLog(models.Model):
@@ -282,14 +282,7 @@ class InventorySessionPayment(models.Model):
     def __str__(self):
         return f"{self.payment_type} - {self.amount}"
 
-class Attendance(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    date = models.DateField(default=timezone.now)
-    in_time = models.TimeField()
-    out_time = models.TimeField(null=True, blank=True)
-    total_hours = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    overtime_hours = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    is_approved = models.BooleanField(default=False) # Approved by accountant
+
 
 class PurchaseRecord(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.PROTECT)

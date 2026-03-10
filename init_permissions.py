@@ -45,8 +45,8 @@ def create_default_permissions():
     print("Updated SUPERVISOR permissions.")
 
     # 3. ACCOUNTANT - Specific modules
-    # ['billing', 'invoices', 'payroll', 'vendor_payments', 'purchases', 'worklogs', 'attendance']
-    accountant_modules = ['sales_bill', 'outer_bill', 'inner_bill', 'vendors', 'purchases', 'vendor_payments', 'payroll', 'attendance', 'reports']
+    # ['billing', 'invoices', 'vendor_payments', 'purchases', 'worklogs']
+    accountant_modules = ['sales_bill', 'outer_bill', 'inner_bill', 'vendors', 'purchases', 'vendor_payments', 'reports']
     # Note: 'billing' spans sales/outer/inner bills. 'invoices' is somewhat redundant or specific view. 
     # Current models.py uses specific names. I should map legacy names to new schema if needed, but here I use new schema keys.
     
