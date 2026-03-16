@@ -31,7 +31,7 @@ def check_permission(user, module):
 @login_required
 def dashboard(request):
     today = timezone.localtime(timezone.now()).date()
-    daily_sales = Bill.objects.filter(created_at__date=today).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    daily_sales = Bill.objects.filter(created_at__date=today).exclude(payment_status='CANCELLED').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
     pending_payments = Bill.objects.filter(payment_status='PENDING').count()
     recent_bills = Bill.objects.all().order_by('-created_at')[:10]
     query = request.GET.get('q')

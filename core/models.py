@@ -147,6 +147,7 @@ class Bill(models.Model):
     PAYMENT_STATUS = (
         ('PAID', 'Paid'),
         ('PENDING', 'Pending'),
+        ('CANCELLED', 'Cancelled'),
     )
     PAYMENT_TYPE_CHOICES = (
         ('UPI', 'UPI'),

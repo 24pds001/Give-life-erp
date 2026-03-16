@@ -23,6 +23,7 @@
                 <option value="">All Status</option>
                 <option value="PAID" {% if filter_payment_status=='PAID' %}selected{% endif %}>Paid</option>
                 <option value="PENDING" {% if filter_payment_status=='PENDING' %}selected{% endif %}>Pending</option>
+                <option value="CANCELLED" {% if filter_payment_status=='CANCELLED' %}selected{% endif %}>Cancelled</option>
             </select>
         </div>
         <div class="col-auto">

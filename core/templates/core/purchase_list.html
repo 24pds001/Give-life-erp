@@ -16,6 +16,7 @@
                         <option value="">All Status</option>
                         <option value="PAID" {% if filter_payment_status == 'PAID' %}selected{% endif %}>Paid</option>
                         <option value="PENDING" {% if filter_payment_status == 'PENDING' %}selected{% endif %}>Pending</option>
+                        <option value="CANCELLED" {% if filter_payment_status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
                     </select>
                 </div>
                 
@@ -92,6 +93,8 @@
                         <td>
                             {% if purchase.payment_status == 'PAID' %}
                                 <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Paid</span>
+                            {% elif purchase.payment_status == 'CANCELLED' %}
+                                <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><i class="bi bi-x-circle-fill me-1"></i>Cancelled</span>
                             {% else %}
                                 <span class="badge rounded-pill bg-warning bg-opacity-10 border border-warning border-opacity-25 px-2 py-1 text-dark"><i class="bi bi-clock-fill me-1 text-warning"></i>Pending</span>
                             {% endif %}
