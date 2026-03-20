@@ -31,8 +31,24 @@ def check_permission(user, module):
 @login_required
 def dashboard(request):
     today = timezone.localtime(timezone.now()).date()
+    current_month = today.month
+    current_year = today.year
+
+    # Existing Metrics
     daily_sales = Bill.objects.filter(created_at__date=today).exclude(payment_status='CANCELLED').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
     pending_payments = Bill.objects.filter(payment_status='PENDING').count()
+    
+    # New Metrics
+    quarter = (current_month - 1) // 3 + 1
+    if current_month >= 4:
+        financial_year = f"{current_year}-{current_year + 1}"
+    else:
+        financial_year = f"{current_year - 1}-{current_year}"
+        
+    invoices_this_month = Bill.objects.filter(created_at__year=current_year, created_at__month=current_month).count()
+    sales_this_month = Bill.objects.filter(created_at__year=current_year, created_at__month=current_month).exclude(payment_status='CANCELLED').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    cancelled_bills_count = Bill.objects.filter(payment_status='CANCELLED').count()
+
     recent_bills = Bill.objects.all().order_by('-created_at')[:10]
     query = request.GET.get('q')
     if query:
@@ -50,6 +66,11 @@ def dashboard(request):
     context = {
         'daily_sales': daily_sales,
         'pending_payments': pending_payments,
+        'invoices_this_month': invoices_this_month,
+        'sales_this_month': sales_this_month,
+        'quarter': f"Q{quarter}",
+        'financial_year': financial_year,
+        'cancelled_bills_count': cancelled_bills_count,
         'recent_bills': recent_bills,
         'invoices_count': invoices_count,
         'items_count': items_count,
